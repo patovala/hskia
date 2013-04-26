@@ -2,7 +2,7 @@ module TCFlow (doit)
 where
 
 import Syntax
-import TParse (tParse)
+import TParse (tParse, parseFile, prex)
 
 {-------------------------------------------------------------------
 
@@ -34,16 +34,25 @@ data CFGNode
 ----------------------------------------------------------------
 eval :: [Stmt] -> Int -> [CFGNode]
 eval [] n = [] 
-eval ((Asg v e):xs) n = (AsgNode v e) : eval xs (n + 1)
-eval ((If e es):xs) n = (IfGotoNode e (n + 1)) : eval xs (n + 2)
-eval ((Ite e es1 es2):xs) n = (IfGotoNode e (n + 1)): (GotoNode (n + 2)) : eval xs (n + 3)
-
--- = Asg String Exp
--- | If Exp [Stmt]
--- | Ite Exp [Stmt] [Stmt]
--- | While Exp [Stmt]
--- | Output Exp
-
+eval ((Asg var exp):xs) n = (AsgNode var exp) : eval xs (n + 1)
+eval ((Output exp):xs) n = (OutputNode exp) : eval xs (n + 1)
+eval ((If exp stmts):xs) n = (IfGotoNode exp (n + 2)):(GotoNode next): inner_stmts ++ eval xs next
+		where next = length inner_stmts + (n + 2)  -- 2 lines ahead
+		      inner_stmts = eval stmts (n + 2) 
+eval ((Ite exp stmts1 stmts2):xs) n = 
+                (IfGotoNode exp nif):(GotoNode nelse):inner_stmts1 ++ (GotoNode end):inner_stmts2 
+                      ++ eval xs (nelse + 1)
+		where nelse = length inner_stmts1 + 1 + nif 
+		      inner_stmts1 = eval stmts1 nif 
+		      end = length inner_stmts2  + nelse 
+		      inner_stmts2 = eval stmts2 nelse 
+                      nif = n + 2
+eval ((While exp stmts):xs) n = 
+                (IfGotoNode exp n2) : (GotoNode next): inner_stmts ++ 
+                [(GotoNode n)] ++ eval xs next
+                where next = n2 + 1 + length inner_stmts 
+		      inner_stmts = eval stmts n2
+                      n2 = n + 2
 
 ----------------------------------------------------------------
 --
@@ -54,3 +63,29 @@ doit s = show val
     where val = eval (tParse s) 0
 
 doto s = eval (tParse s) 0
+
+--
+-- Pretty print of the node sequence productions
+--
+pprint :: [CFGNode] -> Int -> IO()
+pprint [] n = do putStrLn "" 
+pprint (x:xs) n = do 
+            putStrLn $ show n ++ ":" ++ pretyshow x 
+            pprint xs (n + 1)
+
+flowFile :: FilePath -> IO() 
+flowFile fp
+ = do tipProgram <- readFile fp
+      let productions = eval (tParse tipProgram) 0
+      pprint productions 0
+
+pretyshow :: CFGNode -> String
+pretyshow (AsgNode str expr) = str ++ " = " ++ show (prex expr)
+pretyshow (OutputNode expr) = "output " ++ show (prex expr)
+pretyshow (GotoNode n) = "goto " ++ show n
+pretyshow (IfGotoNode expr n) = "if "++ show (prex expr) ++ " goto " ++ show n
+pretyshow (EntryNode) = "<entry>"
+pretyshow (ExitNode) = "<exit>"
+
+
+

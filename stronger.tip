@@ -1,0 +1,22 @@
+num=123;
+while(num>0){
+    i=1;
+    f=1;
+    r=num/10;
+    while(r>i){
+        f=f*i;
+        i=i+1;
+    }
+    sum=sum+f;
+    num=num/10;
+}
+output sum;
+if (sum>0){
+    while (sum>0){
+        sum = sum - 1;
+    }
+}else{
+    while (sum>0){
+        sum = sum - 1;
+    }
+}
