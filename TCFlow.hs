@@ -54,6 +54,7 @@ eval ((While exp stmts):xs) n =
 		      inner_stmts = eval stmts n2
                       n2 = n + 2
 
+evalwrpr productions = EntryNode:productions++[ExitNode]  
 ----------------------------------------------------------------
 --
 --  Test: try to get the CFGNode list from the parser
@@ -76,8 +77,9 @@ pprint (x:xs) n = do
 flowFile :: FilePath -> IO() 
 flowFile fp
  = do tipProgram <- readFile fp
-      let productions = eval (tParse tipProgram) 0
-      pprint productions 0
+      let productions = eval (tParse tipProgram) 1  -- 1 cause entry 
+      let productions' = evalwrpr productions       -- Node has not 
+      pprint productions' 0                         -- yet there
 
 pretyshow :: CFGNode -> String
 pretyshow (AsgNode str expr) = str ++ " = " ++ show (prex expr)
