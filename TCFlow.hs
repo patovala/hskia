@@ -1,4 +1,4 @@
-module TCFlow (doit)
+module TCFlow (doit, doto, flowFile, CFGNode(..), evalwrpr, eval, pprint)
 where
 
 import Syntax
@@ -88,6 +88,3 @@ pretyshow (GotoNode n) = "goto " ++ show n
 pretyshow (IfGotoNode expr n) = "if "++ show (prex expr) ++ " goto " ++ show n
 pretyshow (EntryNode) = "<entry>"
 pretyshow (ExitNode) = "<exit>"
-
-
-
