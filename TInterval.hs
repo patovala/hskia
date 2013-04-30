@@ -47,7 +47,7 @@ instance Eq Ub where
     (==) PlusInf PlusInf = True
     (==) _ _ = False
 
-instance Eq Interval where
+nstance Eq Interval where
     (==) (Interval lb1 ub1) (Interval lb2 ub2)
         | lb1 == lb2 && ub1 == ub2 = True
         | otherwise = False
@@ -57,11 +57,11 @@ instance Eq Interval where
 -- I think that there is no ordering (Ord) in the lattice of
 -- integers intervals U _|_
 -- because of the lattice of intervals U _|_
--- instance Ord Interval where
---     compare (Interval lb1 ub1) (Interval lb2 ub2)
---         | lb1 <= lb2 && ub1 <= ub2 = LT
---         | lb1 < lb2 && ub1 > ub2 = Empty
---         | otherwise = GT
+instance Ord Interval where
+    compare (Interval a b) (Interval c d) 
+        | a <= c && b <= d = LT
+        | a > c && b > d = GT
+        | otherwise = EQ
 
 instance Num Lb where
     (+) MinInf MinInf = MinInf 
@@ -104,18 +104,59 @@ instance Num Interval where
     -- [a + c, b + d]
     (Interval a  b) + (Interval c d) = Interval (a + c) (b + d)
     (Interval a  b) - (Interval c d) = Interval (a - c) (b - d)
-    (Interval a  b) * (Interval c d) = Interval (a * c) (b * d)
+    (Interval (Lb a)  (Ub b)) * (Interval (Lb c) (Ub d)) = 
+                    Interval (Lb (minimum [(a * c),(a * d),(b * c),(b * d)]))
+                             (Ub (maximum [(a * c),(a * d),(b * c),(b * d)]))
+    (Interval MinInf  _) * (Interval _ _) = Interval (MinInf) (PlusInf)
+    (Interval _  PlusInf) * (Interval _ _) = Interval (MinInf) (PlusInf)
+    (Interval _  _) * (Interval MinInf _) = Interval (MinInf) (PlusInf)
+    (Interval _  _) * (Interval _ PlusInf) = Interval (MinInf) (PlusInf)
+                    
     abs _ = undefined
     signum _ = undefined
     fromInteger _ = undefined
-    
 
+
+instance Fractional Interval where
+    (/) Empty Empty = Empty    
+    (/) Empty x = x
+    (/) x Empty = x
+
+    (Interval (Lb a)  (Ub b)) / (Interval (Lb 0) (Ub _)) = Empty
+    (Interval (Lb a)  (Ub b)) / (Interval (Lb _) (Ub 0)) = Empty
+    (Interval (Lb a)  (Ub b)) / (Interval (Lb c) (Ub d)) = 
+                    Interval (Lb (minimum [(a `div` c),(a `div` d),(b `div` c),(b `div` d)]))
+                             (Ub (maximum [(a `div` c),(a `div` d),(b `div` c),(b `div` d)]))
+    (Interval MinInf  _) / (Interval _ _) = Interval (MinInf) (PlusInf)
+    (Interval _  PlusInf) / (Interval _ _) = Interval (MinInf) (PlusInf)
+    (Interval _  _) / (Interval MinInf _) = Interval (MinInf) (PlusInf)
+    (Interval _  _) / (Interval _ PlusInf) = Interval (MinInf) (PlusInf)
+    fromRational = undefined
 
 -- PV this define the union of two intervals
--- union :: Interval -> Interval -> Interval
--- union Empty x = x
--- union x Empty = x
--- union (Interval lb1 ub2) (Interval lb2 ub2) = 
+union :: Interval -> Interval -> Interval
+union Empty x = x
+union x Empty = x
+union (Interval lb1 ub1) (Interval lb2 ub2) = Interval (min lb1 lb2) (max ub1 ub2)
 
-j = Interval MinInf PlusInf
-i = Interval (Lb (-1)) (Ub 0)
+-- PV this define the union of two intervals
+intersec :: Interval -> Interval -> Interval
+intersec Empty x = x
+intersec x Empty = x
+intersec (Interval (Lb a) (Ub b)) (Interval (Lb c) (Ub d)) 
+    | b > c && a<d = Interval (Lb c) (Ub b)
+    | otherwise = Empty
+intersec (Interval MinInf (Ub a)) (Interval (Lb b) PlusInf)
+    | a > b = Interval (Lb b) (Ub a)
+    | otherwise = Empty
+intersec (Interval (Lb b) PlusInf) (Interval MinInf (Ub a)) 
+    | a > b = Interval (Lb b) (Ub a)
+    | otherwise = Empty
+intersec (Interval MinInf PlusInf) i = i 
+intersec i (Interval MinInf PlusInf) = i 
+intersec _ _ = Empty   
+
+j = Interval MinInf (Ub 5)
+i = Interval (Lb (-5)) PlusInf 
+k = Interval (Lb (-3)) (Ub 5)
+

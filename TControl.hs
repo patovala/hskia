@@ -1,4 +1,4 @@
-module TControl 
+module TControl (getconst, getctrpoints, showctrpoints, putids, Pos)
 where
 
 import TCFlow(evalwrpr, eval, CFGNode(..), pprint)
@@ -25,38 +25,13 @@ data CtrPoint =
 
 type SCFGNode = (Int, CFGNode) -- an improved CFGNode with id
 {-- Test Data --}
-myprogram = "n=0;while((100-97)>n){n=n-1*99;}"
-productions' = eval (tParse myprogram) 1  -- 1 cause entry 
-productions = evalwrpr productions'        -- Node has not 
--- PV use this as a test for feeding later
-sproductions = putids productions 0
+--myprogram = "n=0;while((100-97)>n){n=n-1*99;}"
+--productions' = eval (tParse myprogram) 1  -- 1 cause entry 
+--productions = evalwrpr productions'        -- Node has not 
+---- PV use this as a test for feeding later
+--sproductions = putids productions 0
 {-- Fin Test Data --}
-
--- extCtrPoint :: [CFGNode] -> [CtrPoint]
--- extCtrPoint [] = []
--- extCtrPoint x (_:y:[]) = [] -- get the before last node
--- extCtrPoint x (y:x:xs) = 
-
---getpred :: CFGNode -> Pos -> [CFGNode] -> Predecesors
---getpred node idn [] = []
---getpred node idn (y@(AsgNode _ _):x:xs) 
---        | node == x = y:getpred node idn xs
---getpred node idn (y@(GotoNode to):xs) 
---        | idn == to = y:getpred node idn xs
---        | otherwise = getpred node idn xs
---getpred node idn (x:xs) = getpred node idn xs
---
---extCtrPoint :: [CFGNode] -> Int -> [CtrPoint] 
---extCtrPoint [] n = []
---extCtrPoint ((GotoNode _):xs) n = extCtrPoint xs (n+1)
---extCtrPoint (x:xs) n = (CtrPoint n x points):(extCtrPoint xs (n+1))
---        where points = getpred x n productions 
---
---showctrp :: [CtrPoint] -> IO()
---showctrp [] = do putStrLn "" 
---showctrp ((CtrPoint n node ps):xs) = do 
---            putStrLn $ show n ++ ": " ++ show node ++ " -> " ++ show ps 
---            showctrp xs 
+ 
 -------------------------------------------------------------------------------
 -- New approach gettin only a tuple with ids
 -- PV
@@ -68,12 +43,12 @@ putids [] n = []
 putids (x:xs) n = (n, x):putids xs (n+1)
 
 -- This is the main function
-getctrpoints :: [SCFGNode] -> [(CFGNode, [Pos])]
-getctrpoints [] = []
-getctrpoints (x:xs) = cnode : getctrpoints xs
+getctrpoints :: [SCFGNode] -> [SCFGNode] -> [(CFGNode, [Pos])]
+getctrpoints [] sproductions = []
+getctrpoints (x:xs) sproductions = cnode : getctrpoints xs sproductions
         where (pos, cfgnode) = x
               cnode = (cfgnode, (points x))
-              points x = getpred2 x sproductions
+              points x = getpred2 x sproductions sproductions
 
 -- This function shows the new control points with predecesors ids
 showctrpoints :: [(CFGNode, [Pos])] -> Pos -> IO()
@@ -85,18 +60,18 @@ showctrpoints ((node, points):xs) n = do
 --
 -- PV All previous node is a predecesor except a goto and if node who has to
 -- be evaluated in a different way
-getpred2 :: SCFGNode -> [SCFGNode] -> [Pos]
-getpred2 node [] = []
+getpred2 :: SCFGNode -> [SCFGNode] -> [SCFGNode] -> [Pos]
+getpred2 node [] _ = []
 -- getpred2 node ((n, IfGotoNode _ n1):y:xs) 
 --         | node == y = nodelist ++ getpred2 node (y:xs)
 --         where nodelist = getgotopred node sproductions  
-getpred2 node ((n, GotoNode n1):y:xs)  
-        | node == y = nodelist ++ getpred2 node (y:xs)
+getpred2 node ((n, GotoNode n1):y:xs) sproductions 
+        | node == y = nodelist ++ getpred2 node (y:xs) sproductions
         where nodelist = getgotopred node sproductions  
-getpred2 node (x@(n, _):y:xs) 
-        | node == y = n:maybegotos ++ getpred2 node (y:xs)
+getpred2 node (x@(n, _):y:xs) sproductions
+        | node == y = n:maybegotos ++ getpred2 node (y:xs) sproductions
         where maybegotos = getgotopred y sproductions
-getpred2 node (x:xs) = getpred2 node (xs)
+getpred2 node (x:xs) sproductions = getpred2 node (xs) sproductions
 
 -- Get predecesors gotos that points to this node
 getgotopred :: SCFGNode -> [SCFGNode] -> [Pos] 
