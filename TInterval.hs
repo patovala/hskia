@@ -65,12 +65,12 @@ instance Ord Interval where
 
 instance Num Lb where
     (+) MinInf MinInf = MinInf 
-    (+) x MinInf = x 
-    (+) MinInf x = x 
+    (+) x MinInf = MinInf 
+    (+) MinInf x = MinInf 
     (+) (Lb a) (Lb b) = Lb (a + b)
     (-) MinInf MinInf = MinInf 
-    (-) x MinInf = x 
-    (-) MinInf x = x 
+    (-) x MinInf = MinInf 
+    (-) MinInf x = MinInf 
     (-) (Lb a) (Lb b) = Lb (a - b)
     (*) MinInf MinInf = MinInf 
     (*) _ MinInf = MinInf 
@@ -86,8 +86,8 @@ instance Num Ub where
     (+) PlusInf x = x 
     (+) (Ub a) (Ub b) = Ub (a + b)
     (-) PlusInf PlusInf = PlusInf 
-    (-) x PlusInf = x 
-    (-) PlusInf x = x 
+    (-) x PlusInf = PlusInf 
+    (-) PlusInf x = PlusInf 
     (-) (Ub a) (Ub b) = Ub (a - b)
     (*) PlusInf PlusInf = PlusInf 
     (*) _ PlusInf = PlusInf 
@@ -98,12 +98,14 @@ instance Num Ub where
     fromInteger _ = undefined
 
 instance Num Interval where
-    (+) Empty Empty = Empty
-    (+) Empty x = x
-    (+) x Empty = x
+    -- (+) Empty Empty = Empty
+    (+) Empty _ = Empty
+    (+) _ Empty = Empty
     -- [a + c, b + d]
     (Interval a  b) + (Interval c d) = Interval (a + c) (b + d)
     (Interval a  b) - (Interval c d) = Interval (a - c) (b - d)
+    Empty - _ = Empty 
+    _ - Empty = Empty 
     (Interval (Lb a)  (Ub b)) * (Interval (Lb c) (Ub d)) = 
                     Interval (Lb (minimum [(a * c),(a * d),(b * c),(b * d)]))
                              (Ub (maximum [(a * c),(a * d),(b * c),(b * d)]))
@@ -115,7 +117,6 @@ instance Num Interval where
     abs _ = undefined
     signum _ = undefined
     fromInteger _ = undefined
-
 
 instance Fractional Interval where
     (/) Empty Empty = Empty    
