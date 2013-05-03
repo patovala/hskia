@@ -88,3 +88,5 @@ pretyshow (GotoNode n) = "goto " ++ show n
 pretyshow (IfGotoNode expr n) = "if "++ show (prex expr) ++ " goto " ++ show n
 pretyshow (EntryNode) = "<entry>"
 pretyshow (ExitNode) = "<exit>"
+
+
