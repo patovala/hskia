@@ -47,7 +47,7 @@ instance Eq Ub where
     (==) PlusInf PlusInf = True
     (==) _ _ = False
 
-nstance Eq Interval where
+instance Eq Interval where
     (==) (Interval lb1 ub1) (Interval lb2 ub2)
         | lb1 == lb2 && ub1 == ub2 = True
         | otherwise = False
