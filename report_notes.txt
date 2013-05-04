@@ -1,0 +1,18 @@
+
+Fixed-Point Algorithms:
+
+Since we are working in the CFG with nodes $ v=\{vI_{1},v_{2},...v_{n}\} $, our lattice should be $ L^{n} $, and the dataflow equations will be defined by $ \lBrack v_{i} \rBrack = F_{i}(\lBrack v_{1} \rBrack,\ldots,\lBrack v_{n} \rBrack).
+
+
+Modules:
+Module Main.hs
+
+This is the main module, it comprehends the entry point of the application and also includes the help usage method.
+
+
+Syntax.hs
+TCFlow.hs
+TControl.hs
+TInterval.hs
+TParse.hs
+atic.hs
