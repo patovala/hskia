@@ -145,8 +145,9 @@ union (Interval lb1 ub1) (Interval lb2 ub2) = Interval (min lb1 lb2) (max ub1 ub
 intersec :: Interval -> Interval -> Interval
 intersec Empty x = Empty 
 intersec x Empty = Empty 
-intersec (Interval (Lb a) (Ub b)) (Interval (Lb c) (Ub d)) 
-    | b > c && a<d = Interval (Lb c) (Ub b)
+intersec (Interval (Lb a) (Ub b)) (Interval (Lb c) (Ub d)) = (Interval (Lb b') (Ub c'))
+    where (_:b':c':_) = sort([a,b,c,d])
+        
 intersec (Interval MinInf PlusInf) i = i 
 intersec i (Interval MinInf PlusInf) = i 
 -- new rules for infinites
@@ -183,7 +184,9 @@ intersec (Interval MinInf ub1) (Interval lb2 ub2) = r
                     (Ub x) = ub1
                     (Lb y) = lb2
                     (Ub z) = ub2
-                    r = if (x<=y && x<=z) then Empty else (Interval (Lb x') (Ub y'))
+                    -- IPV because intervals seems to be inclusive
+                    -- r = if (x<=y && x<=z) then Empty else (Interval (Lb x') (Ub y'))
+                    r = if (x<y && x<z) then Empty else (Interval (Lb x') (Ub y'))
                     (x':y':z':[]) = Data.List.sort (x:y:z:[])
 -- [a,oo] [b,c]
 intersec (Interval lb1 PlusInf) (Interval lb2 ub2) = r
@@ -191,7 +194,7 @@ intersec (Interval lb1 PlusInf) (Interval lb2 ub2) = r
                     (Lb x) = lb1
                     (Lb y) = lb2
                     (Ub z) = ub2
-                    r = if (x>=y && x>=z) then Empty else (Interval (Lb y') (Ub z'))
+                    r = if (x>y && x>z) then Empty else (Interval (Lb y') (Ub z'))
                     (x':y':z':[]) = Data.List.sort (x:y:z:[])
 -- [a,b] [-oo,c]
 intersec (Interval lb1 ub1) (Interval MinInf ub2) = r
@@ -199,7 +202,7 @@ intersec (Interval lb1 ub1) (Interval MinInf ub2) = r
                     (Lb x) = lb1
                     (Ub y) = ub1
                     (Ub z) = ub2
-                    r = if (z<=x && z<=y) then Empty else (Interval (Lb x') (Ub y'))
+                    r = if (z<x && z<y) then Empty else (Interval (Lb x') (Ub y'))
                     (x':y':z':[]) = Data.List.sort (x:y:z:[])
 -- [a,b] [c,oo]
 intersec (Interval lb1 ub1) (Interval lb2 PlusInf) = r
@@ -207,14 +210,17 @@ intersec (Interval lb1 ub1) (Interval lb2 PlusInf) = r
                     (Lb x) = lb1
                     (Ub y) = ub1
                     (Lb z) = lb2
-                    r = if (z>=x && z>=y) then Empty else (Interval (Lb y') (Ub z'))
+                    r = if (z>x && z>y) then Empty else (Interval (Lb y') (Ub z'))
                     (x':y':z':[]) = Data.List.sort (x:y:z:[])
+
+-- intersec a b = error ("interval error " ++ (show a) ++ (show b))
+
 --
 --intersec _ _ = Empty
 
 -- Test the interval behaviour
 a = [(MinInf),(Lb (-1)),(Lb 0),(Lb 2),(Lb 4)]
-b = [(Ub 0),(Ub 3),(Ub 5),PlusInf]
+b = [(Ub 0),(Ub 2),(Ub 4),PlusInf]
 
 ivs = [(x,y)| x<-ivs', y<-ivs']
     where ivs' = (map (\(x,y) -> Interval x y) (zip a b)) ++ [ Empty ]
