@@ -1,6 +1,6 @@
 --  File     : Stateguess.hs
 --  Author   : Diana Barreto - Ivan Patricio Valero
---  Id       : 574386 -
+--  Id       : 574386 - 601099
 --  Origin   : 06-May-2013
 --  Purpose  : This module include the two main function
 --             to execute the interval analysis
