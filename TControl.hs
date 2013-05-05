@@ -19,9 +19,6 @@ import Syntax (Exp(..))
 --    this could be a structure of nodes inside a list
 type Predecesors = [CFGNode]
 type Pos = Int 
-data CtrPoint = 
-        CtrPoint Int CFGNode Predecesors 
-        deriving(Show)
 
 type SCFGNode = (Int, CFGNode) -- an improved CFGNode with id
 {-- Test Data --}
@@ -42,7 +39,7 @@ putids :: [CFGNode] -> Pos -> [SCFGNode]
 putids [] n = []
 putids (x:xs) n = (n, x):putids xs (n+1)
 
--- This is the main function
+-- This is the function to getctrlpoints
 getctrpoints :: [SCFGNode] -> [SCFGNode] -> [(CFGNode, [Pos])]
 getctrpoints [] sproductions = []
 getctrpoints (x:xs) sproductions = cnode : getctrpoints xs sproductions
