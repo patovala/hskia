@@ -214,8 +214,8 @@ pruebaList2 = [((EntryNode),[]),
 showintanalysis :: [(CFGNode, [Pos])] -> [VarState] -> Pos -> IO()
 showintanalysis [] _ n = do putStr "" 
 showintanalysis ((node, _):xs) (y:ys) n = do 
-            putStrLn $ show n ++ ": \t\t| " ++ show n ++ " : "++ (showvars y) ++"\n"
-            putStrLn $ show n ++ "\t" ++ (pretyshow node) ++ "\t|\t" ++ (pretyshow node)
+            putStrLn $ show n ++ ": \t\t\t| " ++ show n ++ " : "++ (showvars y) ++"\n"
+            putStrLn $ "  " ++ (pretyshow node) ++ "\t|\t" ++ (pretyshow node)
             showintanalysis xs ys (n+1) 
 
 showvars :: VarState -> String
