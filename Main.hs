@@ -81,10 +81,11 @@ doInterval fp
       let productions = eval (tParse tipProgram) 1  -- 1 cause entry 
       let productions' = evalwrpr productions       -- Node has not 
       let sproductions = putids productions' 0
+      let maxcolsize = maximum [length(pretyshow x) | (_, x) <- sproductions]
       let controlpoints = getctrpoints sproductions sproductions
       let const = getconst sproductions
       let vars = [] : iterations controlpoints [] 0 const
-      showintanalysis controlpoints vars 0
+      showintanalysis controlpoints vars 0 maxcolsize
 
 --------------------------------------------------------------------------------
 -- IntervalAnalysis
@@ -289,15 +290,18 @@ pruebaList2 = [((EntryNode),[]),
 -- PrettyPrints
 -- Present the varstate output
 --------------------------------------------------------------------------------
-showintanalysis :: [(CFGNode, [Pos])] -> [VarState] -> Pos -> IO()
-showintanalysis [] _ n = do putStr "" 
-showintanalysis ((node, _):xs) (y:ys) n = do 
-            putStrLn $ show n ++ ": \t\t\t| " ++ show n ++ " : "++ (showvars y) ++"\n"
-            putStrLn $ "  " ++ (pretyshow node) ++ "\t|\t" ++ (pretyshow node)
-            showintanalysis xs ys (n+1) 
+showintanalysis :: [(CFGNode, [Pos])] -> [VarState] -> Pos -> Int -> IO()
+showintanalysis [] _ n _ = do putStr "" 
+showintanalysis ((node, _):xs) (y:ys) n w = do 
+            let pnode = pretyshow node
+            let lnode = length pnode
+            putStrLn $ (show n) ++ (filler w) ++ "  | " ++ show n ++ ": "++ (showvars y)
+            putStrLn $ "   " ++ pnode ++ filler (w - lnode) ++ "|    " ++ pnode
+            showintanalysis xs ys (n+1) w
 
 showvars :: VarState -> String
 showvars [] = ""
 showvars ((v, i):xs) = do 
-            show v ++ "=" ++ show i ++ showvars xs
+            show v ++ "=" ++ show i ++ " " ++ showvars xs
 
+filler n = replicate n ' '
