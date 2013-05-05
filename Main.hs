@@ -22,9 +22,11 @@
 
 module Main (main) 
 where
-import TCFlow (flowFile, evalwrpr, eval)
+import TCFlow (flowFile, evalwrpr, eval, CFGNode(..))
 import TParse (tParse, pretty, parseFile)
-import TControl (showctrpoints, getctrpoints, putids, Pos)
+import TControl (showctrpoints, getctrpoints, putids, Pos, getconst)
+import TInterval (Interval)
+import TIntervalAnalysis (iterations, showintanalysis)
 import System.Environment (getProgName, getArgs)
 
 help :: String -> IO ()
@@ -34,6 +36,7 @@ help tipprog
     putStrLn ("      -t: process file\n ")
     putStrLn ("      -a: get the production list from file\n ")
     putStrLn ("      -p: get the predecesors list from file\n ")
+    putStrLn ("      -i: start the interval\n ")
 
 main :: IO ()
 main 
@@ -50,15 +53,16 @@ processArgs tipprog [option, inputFile]
   = do
       case option of
             "-a" -> flowFile inputFile 
-            "-p" -> filePred inputFile 
+            "-p" -> doFilePred inputFile 
+            "-i" -> doInterval inputFile 
             _ -> help tipprog
 
 processArgs tipprog _
   = do
       help tipprog
 
-filePred :: FilePath -> IO() 
-filePred fp
+doFilePred :: FilePath -> IO() 
+doFilePred fp
  = do tipProgram <- readFile fp
       let productions = eval (tParse tipProgram) 1  -- 1 cause entry 
       let productions' = evalwrpr productions       -- Node has not 
@@ -66,17 +70,14 @@ filePred fp
       let controlpoints = getctrpoints sproductions sproductions
       showctrpoints controlpoints 0
 
---normalise :: String -> IO ()
---normalise inputFile
---  = do
---      exps <- parseFile inputFile
---      let normalisedExps = map pretty exps
---      putStrLn (unlines normalisedExps)
-
---reduceAll :: String -> IO ()
---reduceAll inputFile
---  = do 
---      text <- readFile inputFile
---      let values = map process (lines text)
---      putStrLn (unlines values)
+doInterval :: FilePath -> IO()
+doInterval fp
+ = do tipProgram <- readFile fp
+      let productions = eval (tParse tipProgram) 1  -- 1 cause entry 
+      let productions' = evalwrpr productions       -- Node has not 
+      let sproductions = putids productions' 0
+      let controlpoints = getctrpoints sproductions sproductions
+      let const = getconst sproductions
+      let vars = iterations controlpoints [] 0 const
+      showintanalysis controlpoints vars 0
 

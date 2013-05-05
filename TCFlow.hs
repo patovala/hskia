@@ -1,4 +1,4 @@
-module TCFlow (doit, doto, flowFile, CFGNode(..), evalwrpr, eval, pprint)
+module TCFlow (doit, doto, flowFile, CFGNode(..), evalwrpr, eval, pprint, pretyshow, PredCFGNode)
 where
 
 import Syntax
@@ -25,6 +25,9 @@ data CFGNode
     | EntryNode
     | ExitNode
     deriving (Show,Eq)
+
+--Data Type that agrupe a node and its predecessors
+type PredCFGNode = (CFGNode,[Int])
 
 
 -------------------------------------------------------------------------------
@@ -66,7 +69,7 @@ doit s = show val
 doto s = eval (tParse s) 0
 
 --
--- Pretty print of the node sequence productions
+-- Node sequence productions pretty print 
 --
 pprint :: [CFGNode] -> Int -> IO()
 pprint [] n = do putStrLn "" 
