@@ -1,19 +1,8 @@
 ----------------------------------------------------------------
 --
---  This is the Hskia module entry point, for parsing input from
---  a src file or as a string.
---
---  The ideas has been taken from Harald Sondergaard's Hskia 
---  Module.
---
---  Shows how to process command line arguments and take input
---  from a file which contains a sequence of expressions to be
---  evaluated.  
+--  Hskia: A simple interval analyser for tip programs
 --  
---  This program accepts filenames as the first argument, or 
---  with the option "-t filename" it prints the parse tree
---
---  To compile:  ghc -o calc Hskia.hs
+--  To compile:  ghc --make Main.hs -o hskia
 --
 --  (c) 
 --  Diana Barreto - Ivan Valarezo
