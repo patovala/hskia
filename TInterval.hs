@@ -3,7 +3,7 @@
 -- PV
 
 
-module TInterval (Interval(..),Lb(..),Ub(..), union, intersec)
+module TInterval (Interval(..),Lb(..),Ub(..), union, intersec, intersec2)
 where
 import Data.List(sort)
 

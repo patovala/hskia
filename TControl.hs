@@ -1,4 +1,4 @@
-module TControl (getconst, getctrpoints, showctrpoints, putids, Pos)
+module TControl (getconst, getconst', getctrpoints, showctrpoints, putids, Pos)
 where
 
 import TCFlow(evalwrpr, eval, CFGNode(..), pprint)
@@ -92,12 +92,12 @@ getgotopred x (y:ys) = getgotopred x ys
 -- PV Get the constants from a production
 -- A constant should be get from the expresions
 -------------------------------------------------------------------------------
-getconst :: [SCFGNode] -> [(CFGNode, [Pos])]
+getconst :: [SCFGNode] -> [Int]
 getconst [] = []
-getconst (x@(_, AsgNode _ exp):xs) = (cfgnode, cons) : getconst xs 
+getconst (x@(_, AsgNode _ exp):xs) = cons ++ (getconst xs) 
         where cons = filtercons exp 
               (_, cfgnode) = x
-getconst (x@(_, IfGotoNode exp _):xs) = (cfgnode, cons) : getconst xs 
+getconst (x@(_, IfGotoNode exp _):xs) = cons ++ (getconst xs) 
         where cons = filtercons exp 
               (_, cfgnode) = x
 getconst (x:xs) = getconst xs
@@ -109,3 +109,5 @@ filtercons x = []
 
 -- This is a wrapper for avoid using a more elegant and elaborated SCFGNode
 getconst' cfgnodes = getconst (putids cfgnodes 0)
+
+
