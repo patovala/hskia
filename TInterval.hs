@@ -3,7 +3,7 @@
 -- PV
 
 
-module TInterval (Interval(..),Lb(..),Ub(..), union, intersec, intersec2)
+module TInterval (Interval(..),Lb(..),Ub(..), union, intersec)
 where
 import Data.List(sort)
 
@@ -142,24 +142,24 @@ union x Empty = x
 union (Interval lb1 ub1) (Interval lb2 ub2) = Interval (min lb1 lb2) (max ub1 ub2)
 
 -- PV this define the intersection of two intervals
-intersec2 :: Interval -> Interval -> Interval
-intersec2 Empty x = Empty 
-intersec2 x Empty = Empty 
-intersec2 (Interval (Lb a) (Ub b)) (Interval (Lb c) (Ub d)) 
+intersec :: Interval -> Interval -> Interval
+intersec Empty x = Empty 
+intersec x Empty = Empty 
+intersec (Interval (Lb a) (Ub b)) (Interval (Lb c) (Ub d)) 
     | b > c && a<d = Interval (Lb c) (Ub b)
-intersec2 (Interval MinInf PlusInf) i = i 
-intersec2 i (Interval MinInf PlusInf) = i 
+intersec (Interval MinInf PlusInf) i = i 
+intersec i (Interval MinInf PlusInf) = i 
 -- new rules for infinites
 -- both lb with -oo
-intersec2 (Interval lb1 ub1) (Interval lb2 ub2)
+intersec (Interval lb1 ub1) (Interval lb2 ub2)
     | lb1 == MinInf && lb2 == MinInf = Interval MinInf ub
                 where ub = if (ub1 >= ub2) then ub2 else ub1
 -- both ub with oo
-intersec2 (Interval lb1 ub1) (Interval lb2 ub2)
+intersec (Interval lb1 ub1) (Interval lb2 ub2)
     | ub1 == PlusInf && ub2 == PlusInf = Interval lb PlusInf
                 where lb = if (lb1 >= lb2) then lb2 else lb1
 -- lb1 == -oo and ub2 == oo ub1 can't be oo since it was previously catched
-intersec2 (Interval lb1 ub1) (Interval lb2 ub2)
+intersec (Interval lb1 ub1) (Interval lb2 ub2)
     | lb1 == MinInf && ub2 == PlusInf = r
                 where (Lb x) = lb2
                       (Ub y) = ub1
@@ -169,7 +169,7 @@ intersec2 (Interval lb1 ub1) (Interval lb2 ub2)
                                 LT -> (Interval (Lb y) (Ub x))
 
 -- ub1 == oo and lb2 == -oo ub2 can't be oo since it was previously catched
-intersec2 (Interval lb1 ub1) (Interval lb2 ub2)
+intersec (Interval lb1 ub1) (Interval lb2 ub2)
     | lb2 == MinInf && ub1 == PlusInf = r
                 where (Lb x) = lb1
                       (Ub y) = ub2
@@ -178,7 +178,7 @@ intersec2 (Interval lb1 ub1) (Interval lb2 ub2)
                                 GT -> Empty
                                 LT -> Interval (Lb x) (Ub y)
 -- [-oo,a] [b,c]
-intersec2 (Interval MinInf ub1) (Interval lb2 ub2) = r
+intersec (Interval MinInf ub1) (Interval lb2 ub2) = r
                 where
                     (Ub x) = ub1
                     (Lb y) = lb2
@@ -186,7 +186,7 @@ intersec2 (Interval MinInf ub1) (Interval lb2 ub2) = r
                     r = if (x<=y && x<=z) then Empty else (Interval (Lb x') (Ub y'))
                     (x':y':z':[]) = Data.List.sort (x:y:z:[])
 -- [a,oo] [b,c]
-intersec2 (Interval lb1 PlusInf) (Interval lb2 ub2) = r
+intersec (Interval lb1 PlusInf) (Interval lb2 ub2) = r
                 where
                     (Lb x) = lb1
                     (Lb y) = lb2
@@ -194,7 +194,7 @@ intersec2 (Interval lb1 PlusInf) (Interval lb2 ub2) = r
                     r = if (x>=y && x>=z) then Empty else (Interval (Lb y') (Ub z'))
                     (x':y':z':[]) = Data.List.sort (x:y:z:[])
 -- [a,b] [-oo,c]
-intersec2 (Interval lb1 ub1) (Interval MinInf ub2) = r
+intersec (Interval lb1 ub1) (Interval MinInf ub2) = r
                 where
                     (Lb x) = lb1
                     (Ub y) = ub1
@@ -202,7 +202,7 @@ intersec2 (Interval lb1 ub1) (Interval MinInf ub2) = r
                     r = if (z<=x && z<=y) then Empty else (Interval (Lb x') (Ub y'))
                     (x':y':z':[]) = Data.List.sort (x:y:z:[])
 -- [a,b] [c,oo]
-intersec2 (Interval lb1 ub1) (Interval lb2 PlusInf) = r
+intersec (Interval lb1 ub1) (Interval lb2 PlusInf) = r
                 where
                     (Lb x) = lb1
                     (Ub y) = ub1
@@ -210,64 +210,7 @@ intersec2 (Interval lb1 ub1) (Interval lb2 PlusInf) = r
                     r = if (z>=x && z>=y) then Empty else (Interval (Lb y') (Ub z'))
                     (x':y':z':[]) = Data.List.sort (x:y:z:[])
 --
---intersec2 _ _ = Empty
-
-intersec :: Interval -> Interval -> Interval
-intersec (Interval (Lb lb1)(Ub ub1)) (Interval (Lb lb2) (Ub ub2))
-   = Interval (Lb (maximum (lb1:lb2:[]))) (Ub (minimum (ub1:ub2:[]))) 
-intersec (Interval MinInf PlusInf) (Interval (Lb lb2) (Ub ub2))
-   = (Interval (Lb lb2) (Ub ub2))
-intersec (Interval (Lb lb1)(Ub ub1))(Interval MinInf PlusInf) 
-   = (Interval (Lb lb1)(Ub ub1))
-intersec (Interval (Lb lb1) PlusInf)(Interval (Lb lb2) PlusInf) 
-   |lb1 >= lb2 = Interval (Lb lb1) PlusInf
-   |otherwise = Interval(Lb lb2) PlusInf
-intersec (Interval (Lb lb1)(Ub ub1))(Interval (Lb lb2) PlusInf) 
-   |lb1 >= lb2 = Interval (Lb lb1)(Ub ub1)
-   |ub1 < lb2 = Empty
-   |otherwise = Interval(Lb ub1)(Ub lb2)
-intersec (Interval (Lb lb1) PlusInf) (Interval (Lb lb2)(Ub ub2))
-   |lb2 >= lb1 = (Interval (Lb lb2)(Ub ub2))
-   |ub2 > lb1 = Empty
-   |otherwise = Interval(Lb lb1)(Ub ub2)
-intersec (Interval (Lb lb1)(Ub ub1))(Interval MinInf (Ub ub2)) 
-   |ub1 > ub2 && lb1<ub2 = Interval(Lb lb1)(Ub ub2)
-   |ub1 > ub2 && lb1>ub2 = Empty
-   |otherwise = Interval(Lb lb1)(Ub ub1)
-intersec (Interval MinInf (Ub ub2))(Interval (Lb lb1)(Ub ub1)) 
-   |ub1 > ub2 && lb1<ub2 = Interval(Lb lb1)(Ub ub2)
-   |ub1 > ub2 && lb1>ub2 = Empty
-   |otherwise = Interval(Lb lb1)(Ub ub1)
-intersec (Interval MinInf (Ub ub1))(Interval(Lb lb2) PlusInf) 
-   |lb2 > ub1  = Interval(Lb lb2)(Ub ub1)
-   |ub1 < lb2  = Empty
-   |otherwise = Interval(Lb lb2)(Ub ub1)
-intersec (Interval(Lb lb2) PlusInf)(Interval MinInf (Ub ub1)) 
-   |lb2 > ub1  = Interval(Lb lb2)(Ub ub1)
-   |ub1 < lb2  = Empty
-   |otherwise = Interval(Lb lb2)(Ub ub1)
-intersec (Interval MinInf (Ub ub1) )(Interval MinInf (Ub ub2)) 
-   |ub2 < ub1  = (Interval MinInf (Ub ub2))
-   |otherwise = (Interval MinInf (Ub ub1) )
-{--intersec (Interval (Lb lb1) PlusInf)(Interval (Lb lb2) PlusInf) 
-   |lb2 > lb1  = (Interval (Lb lb2) PlusInf)
-   |otherwise = (Interval (Lb lb1) PlusInf)--}
-
-   
-{--biggerLess::Interval->Interval->Interval
-biggerLess(Interval (Lb lb1)(Ub ub1))(Interval (Lb lb2)(Ub ub2))
-   = Order((lb1>lb2) || (ub1>ub2))((lb1<lb2) || (ub1<ub2) || (ub1==ub2))
-biggerLess(Interval MinInf(Ub ub1))(Interval (Lb lb2)(Ub ub2))
-   = Order((ub1>ub2))(True)
-biggerLess(Interval (Lb lb1)PlusInf)(Interval (Lb lb2)(Ub ub2))
-   = Order(True)(lb1<lb2)
-biggerLess(Interval MinInf PlusInf) _
-   = Order(True)(True)   
-  
-   
-sameDifferent::Interval->Interval->Interval
-sameDifferent(Interval (Lb lb1)(Ub ub1))(Interval (Lb lb2)(Ub ub2))
-   = Order((lb1==lb2) && (ub2==ub1))((lb1/=lb2) || (ub2/=ub1)) --}
+--intersec _ _ = Empty
 
 -- Test the interval behaviour
 a = [(MinInf),(Lb (-1)),(Lb 0),(Lb 2),(Lb 4)]
