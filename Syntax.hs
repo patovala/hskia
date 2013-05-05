@@ -18,7 +18,7 @@ data Exp
   deriving (Show,Eq)
 
 data Opkind
-  = Plus | Minus | Mult | Div | More | Equal 
+  = Plus | Minus | Mult | Div | More | Equal | Nequal
   deriving (Show,Eq)
 
 data Stmt

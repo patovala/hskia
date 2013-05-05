@@ -18,6 +18,7 @@ import Data.List (intersperse)
 %error { parseError }
 
 %left '>' '=='
+%left '>' '!='
 %left '+' '-'
 %left '*' '/' 
 
@@ -28,6 +29,7 @@ import Data.List (intersperse)
   '/'    { TDIV }
   '>'    { TMORE }
   '=='   { TEQUAL }
+  '!='   { TNEQUAL }
   '='    { TASG }
   '('    { TOPENPAR }
   ')'    { TCLOSEPAR }
@@ -70,6 +72,7 @@ Exp  :: { Exp }
   | Exp '/' Exp        { Op Div $1 $3 }
   | Exp '>' Exp        { Op More $1 $3 }
   | Exp '==' Exp       { Op Equal $1 $3 }
+  | Exp '!=' Exp       { Op Nequal $1 $3 }
   | '(' Exp ')'        { $2 }
   | input              { Input }
 
@@ -81,7 +84,7 @@ parseError tks
 
 data Token
   = TCON String | TVAR String 
-  | TPLUS | TMINUS | TMULT | TDIV | TMORE | TEQUAL 
+  | TPLUS | TMINUS | TMULT | TDIV | TMORE | TEQUAL | TNEQUAL
   | TOPENPAR | TCLOSEPAR | TOPENBRACE | TCLOSEBRACE
   | TINPUT | TOUTPUT | TSEMICOLON 
   | TASG | TIF | TELSE | TWHILE
@@ -89,6 +92,8 @@ data Token
 
 lexer :: String -> [Token]
 lexer (x:xs) | isSpace x           = lexer xs
+lexer ('/':'/':xs)
+  = lexer (dropWhile (/= '\n') xs)
 lexer []                           = []
 lexer ('+':xs)                     = TPLUS       : lexer xs
 lexer ('-':xs)                     = TMINUS      : lexer xs
@@ -96,6 +101,7 @@ lexer ('*':xs)                     = TMULT       : lexer xs
 lexer ('/':xs)                     = TDIV        : lexer xs
 lexer ('>':xs)                     = TMORE       : lexer xs
 lexer ('=':'=':xs)                 = TEQUAL      : lexer xs
+lexer ('!':'=':xs)                 = TNEQUAL     : lexer xs
 lexer ('=':xs)                     = TASG        : lexer xs
 lexer ('(':xs)                     = TOPENPAR    : lexer xs
 lexer (')':xs)                     = TCLOSEPAR   : lexer xs
@@ -185,6 +191,7 @@ prop op
       Div    -> " / "
       More   -> " > "
       Equal  -> " == "
+      Nequal -> " != "
 
 spaced_list :: [String] -> String
 spaced_list = concat . intersperse " " 
