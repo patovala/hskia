@@ -1,6 +1,6 @@
 --  File     : Stateguess.hs
 --  Author   : Diana Barreto - Patricio Valero
---  Id       : 574386 -
+--  Id       : 574386 - 601099
 --  Origin   : 06-May-2013
 --  Purpose  : This module transfor arithmetic expressions 
 --             to interval exp and evaluate interval expressions
@@ -114,7 +114,7 @@ evalInterExp (EqualInter e1 e2)
         if(c == Empty) then
            Interval (Lb 0) (Ub 0)
         else
-           Interval (Lb 1) (Ub 1)
+           Interval MinInf PlusInf
 evalInterExp InputInter
   = Interval MinInf PlusInf
 
