@@ -1,4 +1,4 @@
---  Author   : Diana Barreto - Patricio Valero
+--  Author   : Diana Barreto - Ivan Patricio Valarezo
 --  Id       : 574386 - 601099
 --  Origin   : 06-May-2013
 --  Purpose  : Implementation of Interval Operations

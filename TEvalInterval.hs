@@ -1,5 +1,5 @@
---  File     : Stateguess.hs
---  Author   : Diana Barreto - Patricio Valero
+--  File     : TEvalInterval.hs
+--  Author   : Diana Barreto - Patricio Valarezo
 --  Id       : 574386 - 601099
 --  Origin   : 06-May-2013
 --  Purpose  : This module transfor arithmetic expressions 
