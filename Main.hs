@@ -95,17 +95,17 @@ doInterval fp
 --[int] with the landmarks set 
 iterations::[PredCFGNode]->VarStates->Int->[Int]->VarStates
 iterations nodes x 0 lmarks	
-   = let initialIteration = iteration nodes 0 lmarks []  (entryState (length nodes) (nub(getVarBottom nodes))) []
-     in  iterations nodes initialIteration 1 lmarks 
+   = let initialIteration = iteration nodes 0 lmarks [] [] (entryState (length nodes) (nub(getVarBottom nodes))) []
+     in  initialIteration--iterations nodes initialIteration 1 lmarks 
 
 iterations nodes stateIn i lmarks
    |i == 3 = 
-      let newState = iteration nodes 0 lmarks [] stateIn []
+      let newState = iteration nodes 0 lmarks [] [] stateIn []
           stateWidening = wideningState stateIn newState lmarks
       in
           iterations nodes stateWidening 1 lmarks 
    |otherwise =
-     let newState = iteration nodes  0 lmarks [] stateIn []
+     let newState = iteration nodes  0 lmarks [] [] stateIn []
      in 
         if(stateIn == newState) then
            newState
