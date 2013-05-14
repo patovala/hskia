@@ -39,12 +39,14 @@ eval :: [Stmt] -> Int -> [CFGNode]
 eval [] n = [] 
 eval ((Asg var exp):xs) n = (AsgNode var exp) : eval xs (n + 1)
 eval ((Output exp):xs) n = (OutputNode exp) : eval xs (n + 1)
-eval ((If exp stmts):xs) n = (IfGotoNode exp (n + 2)):(GotoNode next): inner_stmts ++ eval xs next
+eval ((If exp stmts):xs) n = 
+          (IfGotoNode exp (n + 2)):(GotoNode next): inner_stmts ++ eval xs next
 		where next = length inner_stmts + (n + 2)  -- 2 lines ahead
 		      inner_stmts = eval stmts (n + 2) 
 eval ((Ite exp stmts1 stmts2):xs) n = 
-                (IfGotoNode exp nif):(GotoNode nelse):inner_stmts1 ++ (GotoNode end):inner_stmts2 
-                      ++ eval xs (nelse + 1)
+          (IfGotoNode exp nif):(GotoNode nelse):inner_stmts1 
+                      ++ (GotoNode end):inner_stmts2 
+                      ++ eval xs end
 		where nelse = length inner_stmts1 + 1 + nif 
 		      inner_stmts1 = eval stmts1 nif 
 		      end = length inner_stmts2  + nelse 
