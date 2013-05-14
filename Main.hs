@@ -95,17 +95,18 @@ doInterval fp
 --[int] with the landmarks set 
 iterations::[PredCFGNode]->VarStates->Int->[Int]->VarStates
 iterations nodes x 0 lmarks	
-   = let initialIteration = iteration nodes 0 lmarks []  (entryState (length nodes) (nub(getVarBottom nodes))) []
+   = let initialIteration = iteration nodes 0 lmarks [] [] (entryState (length nodes) (nub(getVarBottom nodes))) []
+     -- in  initialIteration << bug 
      in  iterations nodes initialIteration 1 lmarks 
 
 iterations nodes stateIn i lmarks
    |i == 3 = 
-      let newState = iteration nodes 0 lmarks [] stateIn []
+      let newState = iteration nodes 0 lmarks [] [] stateIn []
           stateWidening = wideningState stateIn newState lmarks
       in
           iterations nodes stateWidening 1 lmarks 
    |otherwise =
-     let newState = iteration nodes  0 lmarks [] stateIn []
+     let newState = iteration nodes  0 lmarks [] [] stateIn []
      in 
         if(stateIn == newState) then
            newState
@@ -122,11 +123,11 @@ iterations nodes stateIn i lmarks
 --           in a conditional node 
 --stateOld : The state of the previous iterantion
 --stateIn : where the state of the current iteration is build
-iteration::[PredCFGNode]->Int->[Int]->VarState->VarStates->VarStates->VarStates
-iteration [] _ _ _ _ stateIn = stateIn
-iteration ((EntryNode,_):nodes) current _ _ stateOld stateIn
-   =  iteration nodes  (current+1) ((current+1):[]) [] stateOld [nub(getVarTop nodes)]
-iteration (((AsgNode var exp),n):nodes) current reachable intersect stateOld stateIn
+iteration::[PredCFGNode]->Int->[Int]->VarState->VarState->VarStates->VarStates->VarStates
+iteration [] _ _ _ _ _ stateIn = stateIn
+iteration ((EntryNode,_):nodes) current _ _ _ stateOld stateIn
+   =  iteration nodes  (current+1) ((current+1):[]) [] [] stateOld [nub(getVarTop nodes)]
+iteration (((AsgNode var exp),n):nodes) current reachable intersect union stateOld stateIn
    | elem current reachable
       = let 
            pastState = getUnionPredIntervals n stateOld stateIn 
@@ -134,12 +135,12 @@ iteration (((AsgNode var exp),n):nodes) current reachable intersect stateOld sta
            inter2 =  convertVartoVal inter1 pastState
            inter3 =  evalInterExp inter2
            state = replaceVarVal pastState var inter3
-        in iteration nodes  (current+1) ((current+1):reachable) [] stateOld (stateIn ++ [state])
+        in iteration nodes  (current+1) ((current+1):reachable) [] [] stateOld (stateIn ++ [state])
     | otherwise 
       = let
            state2 = stateOld !! current
-        in iteration nodes  (current+1) reachable [] stateOld (stateIn ++ [state2]) 
-iteration (((IfGotoNode exp next),n):nodes)  current reachable intersect stateOld stateIn
+        in iteration nodes  (current+1) reachable [] [] stateOld (stateIn ++ [state2]) 
+iteration (((IfGotoNode exp next),n):nodes)  current reachable intersect union stateOld stateIn
     | elem current reachable
       = let 
            pastState = getUnionPredIntervals n stateOld stateIn
@@ -148,34 +149,34 @@ iteration (((IfGotoNode exp next),n):nodes)  current reachable intersect stateOl
            falseIntersec = snd(fst eval)
            newReachable = snd eval
            newState = intersecVarState pastState trueIntersec
-        in iteration nodes (current+1) newReachable falseIntersec stateOld (stateIn ++ [newState])   
+        in iteration nodes (current+1) newReachable falseIntersec pastState stateOld (stateIn ++ [newState])   
     |otherwise 
       = let 
            state = stateOld !! current
            eval = evalCondition exp state next (current+1) reachable
            falseIntersec = snd(fst eval)
-        in iteration nodes (current+1) reachable falseIntersec stateOld (stateIn ++ [state])
-iteration (((GotoNode next),n):nodes) current reachable intersect stateOld stateIn
+        in iteration nodes (current+1) reachable falseIntersec state stateOld (stateIn ++ [state])
+iteration (((GotoNode next),n):nodes) current reachable intersect union stateOld stateIn
     | elem current reachable
       = let
-           pastState = getUnionPredIntervals n stateOld stateIn
+           pastState = getPastState union (getUnionPredIntervals n stateOld stateIn) 
            newState = intersecVarState pastState intersect 
-        in iteration nodes (current+1) (next:reachable) [] stateOld (stateIn ++ [newState])
+        in iteration nodes (current+1) (next:reachable) [] [] stateOld (stateIn ++ [newState])
     | otherwise
       = let   
            state = stateOld !! current
         in
-           iteration nodes (current+1) reachable [] stateOld (stateIn ++ [state])
-iteration (((OutputNode exp),n):nodes)  current reachable intersect stateOld stateIn
+           iteration nodes (current+1) reachable [] [] stateOld (stateIn ++ [state])
+iteration (((OutputNode exp),n):nodes)  current reachable intersect union stateOld stateIn
     | elem current reachable
       = let
             state = getUnionPredIntervals n stateOld stateIn
-        in  iteration nodes (current+1) ((current+1):reachable) [] stateOld (stateIn ++ [state])
+        in  iteration nodes (current+1) ((current+1):reachable) [] [] stateOld (stateIn ++ [state])
     | otherwise
        = let         
             state = stateOld !! current
-         in iteration nodes  (current+1) reachable [] stateOld (stateIn ++ [state])
-iteration (((ExitNode),n):nodes)  current reachable intersect stateOld stateIn
+         in iteration nodes  (current+1) ((current+1):reachable){--reachable --} [] [] stateOld (stateIn ++ [state])
+iteration (((ExitNode),n):nodes)  current reachable intersect union stateOld stateIn
     | elem current reachable
         = let
              pastState = getUnionPredIntervals n stateOld stateIn
@@ -184,6 +185,13 @@ iteration (((ExitNode),n):nodes)  current reachable intersect stateOld stateIn
        = let         
             state = stateOld !! current
          in (stateIn ++ [state])
+
+getPastState::VarState->VarState->VarState
+getPastState conditional predecessors=
+    if (length conditional) == 0 then
+        predecessors    
+    else
+        conditional
 
 ---------------Functions to do widening----------------------
 wideningState::VarStates->VarStates->[Int]->VarStates
@@ -251,28 +259,6 @@ removeBigger y (x:xs)
         removeBigger y xs
      else
         x:(removeBigger y xs)
------------------------------------------------------------------
---tests
-pruebaIterations::VarStates
-pruebaIterations 
-   =  let a = [0,1,10]
-      in iterations pruebaList2 [] 0 a
-
-pruebaList2::[PredCFGNode]   
-pruebaList2 = [((EntryNode),[]),
-               ((AsgNode "i" (Con 0)),[0]),
-               ((AsgNode "j" (Con 0)),[1]),
-               ((IfGotoNode (Op More (Con 10) (Var "i")) 5),[2,9]),
-               ((GotoNode 10),[2,9]),
-               ((AsgNode "i" (Op Plus (Var  "i") (Con 1))),[3]), 
-               ((IfGotoNode Input 8),[5]),
-               ((GotoNode 9),[5]),
-               ((AsgNode "j" (Op Mult (Con 2) (Var "i"))),[6]),
-               ((GotoNode 3),[8]),
-               ((AsgNode "k" (Op Plus (Var "i") (Var "j"))),[4]),
-               ((OutputNode (Var "k")),[10]),
-               ((ExitNode),[11])]
------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -294,3 +280,4 @@ showvars ((v, i):xs) = do
             show v ++ "=" ++ show i ++ " " ++ showvars xs
 
 filler n = replicate n ' '
+

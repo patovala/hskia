@@ -1,7 +1,7 @@
--- A super interval calculator
---
--- PV
-
+--  Author   : Diana Barreto - Ivan Patricio Valarezo
+--  Id       : 574386 - 601099
+--  Origin   : 06-May-2013
+--  Purpose  : Implementation of Interval Operations
 
 module TInterval (Interval(..),Lb(..),Ub(..), union, intersec)
 where
@@ -72,7 +72,7 @@ instance Num Lb where
     (-) MinInf MinInf = MinInf 
     (-) x MinInf = MinInf 
     (-) MinInf x = MinInf 
-    (-) (Lb a) (Lb b) = Lb (a - b)
+--    (-) (Lb a) (Ub b) = Lb (a - b)
     (*) MinInf MinInf = MinInf 
     (*) _ MinInf = MinInf 
     (*) MinInf _ = MinInf 
@@ -89,7 +89,7 @@ instance Num Ub where
     (-) PlusInf PlusInf = PlusInf 
     (-) x PlusInf = PlusInf 
     (-) PlusInf x = PlusInf 
-    (-) (Ub a) (Ub b) = Ub (a - b)
+--    (-) (Ub a) (Lb b) = Ub (a - b)
     (*) PlusInf PlusInf = PlusInf 
     (*) _ PlusInf = PlusInf 
     (*) PlusInf _ = PlusInf 
@@ -104,7 +104,7 @@ instance Num Interval where
     (+) _ Empty = Empty
     -- [a + c, b + d]
     (Interval a  b) + (Interval c d) = Interval (a + c) (b + d)
-    (Interval a  b) - (Interval c d) = Interval (a - c) (b - d)
+    (Interval (Lb a) (Ub b)) - (Interval (Lb c) (Ub d)) = Interval (Lb(a - d)) (Ub (b - c))
     Empty - _ = Empty 
     _ - Empty = Empty 
     (Interval (Lb a)  (Ub b)) * (Interval (Lb c) (Ub d)) = 
@@ -121,8 +121,9 @@ instance Num Interval where
 
 instance Fractional Interval where
     (/) Empty Empty = Empty    
-    (/) Empty x = x
-    (/) x Empty = x
+    (/) Empty x = Empty
+    (/) x Empty = Empty
+
 
     (Interval (Lb a)  (Ub b)) / (Interval (Lb 0) (Ub _)) = Empty
     (Interval (Lb a)  (Ub b)) / (Interval (Lb _) (Ub 0)) = Empty

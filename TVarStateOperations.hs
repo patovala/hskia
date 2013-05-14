@@ -1,6 +1,5 @@
---  File     : Stateguess.hs
---  Author   : Diana Barreto - Patricio Valero
---  Id       : 574386 -
+--  Author   : Diana Barreto - Ivan Patricio Valarezo
+--  Id       : 574386 - 601099
 --  Origin   : 06-May-2013
 --  Purpose  : This module has a set of operations
 --           : to do operations between varState
@@ -155,7 +154,7 @@ evalCondition exp state branchTrue branchFalse reachable
          newReachable = addReachables inter3 reachable branchTrue branchFalse
          interTrueFalse1 = getRightIntersect interExp1 state 
          interTrueFalse2 = getLeftIntersect interExp1 state interTrueFalse1 
-      in (interTrueFalse1,newReachable)
+      in (interTrueFalse2,newReachable)
 
 
 getRightIntersect::InterExp->VarState->(VarState,VarState)
@@ -165,6 +164,16 @@ getRightIntersect (MoreInter exp (VarInter s)) state
          exp1 = convertVartoVal exp state
          inter1 = evalInterExp exp1
          intersect1 = getIntersectIntervals (MoreInter (ConInter inter1) (VarInter s))
+         interTrue2 = replaceVarVal interTrue1 s (snd(fst intersect1))
+         interFalse2 = replaceVarVal interFalse1  s (snd(snd intersect1))
+     in 
+         (interTrue2,interFalse2)
+getRightIntersect (EqualInter exp (VarInter s)) state
+   = let interTrue1 = getVarTopState state
+         interFalse1 = getVarTopState state
+         exp1 = convertVartoVal exp state
+         inter1 = evalInterExp exp1
+         intersect1 = getIntersectIntervals (EqualInter (ConInter inter1) (VarInter s))
          interTrue2 = replaceVarVal interTrue1 s (snd(fst intersect1))
          interFalse2 = replaceVarVal interFalse1  s (snd(snd intersect1))
      in 
@@ -181,6 +190,14 @@ getLeftIntersect (MoreInter (VarInter s) exp) state (interTrue1, interFalse1)
          interFalse2 = replaceVarVal interFalse1  s (snd(snd intersect1))
      in 
          (interTrue2,interFalse2)
+getLeftIntersect (EqualInter (VarInter s) exp) state (interTrue1, interFalse1)
+   = let exp1 = convertVartoVal exp state
+         inter1 = evalInterExp exp1
+         intersect1 = getIntersectIntervals (EqualInter (VarInter s) (ConInter inter1))
+         interTrue2 = replaceVarVal interTrue1 s (snd(fst intersect1))
+         interFalse2 = replaceVarVal interFalse1  s (snd(snd intersect1))
+     in 
+         (interTrue2,interFalse2)
 getLeftIntersect _ state (interTrue1, interFalse1)
    = (interTrue1,interFalse1)
 --Funtion that receive a more interval expresion
@@ -190,8 +207,12 @@ getLeftIntersect _ state (interTrue1, interFalse1)
 getIntersectIntervals::InterExp->((String,Interval),(String,Interval))   
 getIntersectIntervals (MoreInter(ConInter (Interval (Lb i)(Ub i2)))(VarInter s))
    =((s,Interval MinInf (Ub (i-1))), (s,Interval (Lb i) PlusInf))
+getIntersectIntervals (EqualInter(ConInter (Interval (Lb i)(Ub i2)))(VarInter s))
+   =((s,(Interval (Lb i)(Ub i2))), (s,Interval MinInf PlusInf))
 getIntersectIntervals (MoreInter(VarInter s) (ConInter (Interval (Lb i)(Ub i2))))
    =((s,Interval (Lb (i+1)) PlusInf), (s,Interval MinInf (Ub i)))
+getIntersectIntervals (EqualInter(VarInter s) (ConInter (Interval (Lb i)(Ub i2))))
+   =((s,(Interval (Lb i)(Ub i2))), (s,Interval MinInf PlusInf))
    
 --Function that add the reachbles according
 --with the value of an interval   
