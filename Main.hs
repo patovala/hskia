@@ -97,10 +97,11 @@ doInterval fp
 iterations::[PredCFGNode]->VarStates->Int->[Int]->VarStates
 iterations nodes x 0 lmarks	
    = let initialIteration = iteration nodes 0 lmarks [] [] (entryState (length nodes) (nub(getVarBottom nodes))) []
-        -- secondIteration = iteration nodes 0 lmarks [] [] initialIteration []
+         -- secondIteration = iteration nodes 0 lmarks [] [] initialIteration []
         -- thirdIteration = iteration nodes 0 lmarks [] [] secondIteration []
         -- fourIteration = iteration nodes 0 lmarks [] [] thirdIteration  []
      in  --fourIteration
+         --secondIteration
          iterations nodes initialIteration 1 lmarks 
 
 iterations nodes stateIn i lmarks

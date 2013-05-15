@@ -105,6 +105,12 @@ instance Num Interval where
     -- [a + c, b + d]
     (Interval a  b) + (Interval c d) = Interval (a + c) (b + d)
     (Interval (Lb a) (Ub b)) - (Interval (Lb c) (Ub d)) = Interval (Lb(a - d)) (Ub (b - c))
+    (Interval MinInf (Ub b)) - (Interval (Lb c) _) = Interval (MinInf) (Ub (b - c))
+    (Interval (Lb a) PlusInf) - (Interval _ (Ub d)) = Interval (Lb(a - d)) (PlusInf)
+    (Interval (Lb a) (Ub b)) - (Interval MinInf (Ub d)) = Interval (MinInf) (PlusInf)
+    (Interval (Lb a) (Ub b)) - (Interval (Lb c) PlusInf) = Interval (MinInf) (PlusInf)
+    (Interval MinInf PlusInf) - (Interval _ _) = Interval (MinInf) (PlusInf)
+    (Interval _ _) - (Interval MinInf PlusInf) = Interval (MinInf) (PlusInf)
     Empty - _ = Empty 
     _ - Empty = Empty 
     (Interval (Lb a)  (Ub b)) * (Interval (Lb c) (Ub d)) = 

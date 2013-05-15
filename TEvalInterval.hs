@@ -84,13 +84,18 @@ evalInterExp (MoreInter e1 e2)
    = let a = evalInterExp e1
          b = evalInterExp e2
      in
-     if( (a > b) == False) && ((b > a) == False) then
-        Interval MinInf PlusInf
+     -- when the intervals are equal
+     if (a==b) then
+        Interval (Lb 0) (Ub 0)
      else
-        if(a>b) then
-           Interval (Lb 1) (Ub 1)
+        if( (a > b) == False) && ((b > a) == False) then
+           Interval MinInf PlusInf
         else
-           Interval (Lb 0) (Ub 0)
+           if(a>b) then
+              Interval (Lb 1) (Ub 1)
+           else
+              Interval (Lb 0) (Ub 0)
+
 evalInterExp (EqualInter e1 e2)  
    = let a = evalInterExp e1
          b = evalInterExp e2

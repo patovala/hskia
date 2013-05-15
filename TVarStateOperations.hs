@@ -6,7 +6,7 @@
 --           : include also the operations to evaluate 
 --           : the branch and the conditions for each branch
 
-module TVarStateOperations(VarState(..),VarStates(..),
+module TVarStateOperations(VarState, VarStates,
  getVarTop, getUnionPredIntervals, convertVartoVal, replaceVarVal, 
  evalCondition, intersecVarState,entryState, getVarBottom,)
 
@@ -206,11 +206,11 @@ getLeftIntersect _ _ state (interTrue1, interFalse1)
 --interval for true condition and the second value
 --is the interval for false condition  
 getIntersectIntervals::Interval->InterExp->((String,Interval),(String,Interval)) 
-getIntersectIntervals branch (MoreInter(ConInter (Interval (Lb i)(Ub i2)))(VarInter s)) =
-    -- | branch == Interval(Lb 1) (Ub 1) =
+getIntersectIntervals branch (MoreInter(ConInter (Interval (Lb i)(Ub i2)))(VarInter s)) 
+    | branch == Interval(Lb 1) (Ub 1) =
        ((s,Interval MinInf (Ub (i-1))), (s,Interval (Lb i) PlusInf))
-    -- | branch == Interval(Lb 0) (Ub 0) =
-      -- ((s,Interval MinInf (Ub (i))), (s,Interval (Lb i) PlusInf))
+    | branch == Interval(Lb 0) (Ub 0) =
+       ((s,Interval (Lb (i)) PlusInf), (s,Interval MinInf (Ub (i-1))))
 
 getIntersectIntervals branch (MoreInter(ConInter _)(VarInter s))
    =((s,Interval MinInf PlusInf), (s,Interval MinInf PlusInf))  
@@ -221,11 +221,11 @@ getIntersectIntervals branch (EqualInter(ConInter (Interval (Lb i)(Ub i2)))(VarI
 getIntersectIntervals branch (EqualInter (ConInter _)(VarInter s))
    =((s,Interval MinInf PlusInf), (s,Interval MinInf PlusInf))
    
-getIntersectIntervals branch (MoreInter(VarInter s) (ConInter (Interval (Lb i)(Ub i2))))=
-    -- | branch == Interval(Lb 1) (Ub 1) =
+getIntersectIntervals branch (MoreInter(VarInter s) (ConInter (Interval (Lb i)(Ub i2))))
+    | branch == Interval(Lb 1) (Ub 1) =
         ((s,Interval (Lb (i+1)) PlusInf), (s,Interval MinInf (Ub i)))
-    -- 	| branch == Interval(Lb 0) (Ub 0) =
-      --  ((s,Interval (Lb (i)) PlusInf), (s,Interval MinInf (Ub i)))
+    | branch == Interval(Lb 0) (Ub 0) =
+       ((s,Interval MinInf (Ub (i))), (s,Interval (Lb (i+1)) PlusInf))
 
 getIntersectIntervals branch (MoreInter(VarInter s) (ConInter _))
    =((s,Interval MinInf PlusInf), (s,Interval MinInf PlusInf))
