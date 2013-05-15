@@ -1,5 +1,0 @@
-       n=0;  
-       while (101 > n){
-         n=n+2;
-       }
-       output n;

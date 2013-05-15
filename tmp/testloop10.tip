@@ -1,9 +1,0 @@
-      i=0;  
-      j=0;
-      while (101 > i){
-        while (101 > j){
-          j=j+1;
-        }
-        i=i+1;
-      }  
-      output i+j;
