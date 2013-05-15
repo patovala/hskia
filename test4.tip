@@ -1,0 +1,12 @@
+      y = 5;
+      z = 8;
+      if (input){
+        x = 30*y/z; 
+        z = x;      
+      }
+      else{
+        x = y-4; 
+        z = x*y; 
+      }
+      result = x+y+z;
+      output result; 

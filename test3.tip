@@ -1,0 +1,15 @@
+       if (input){
+         x=0;
+       }
+       else {
+         x=5;
+       }
+       if (x == 0){ 
+         z=2*x;
+       }
+       else{
+         z=x+2;
+       }
+       output z;
+
+

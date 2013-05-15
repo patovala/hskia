@@ -57,19 +57,7 @@ transformExpMore (Op More (Var s)(Con i))
 transformExpMore (Op More (Var s1)(Var s2)) 
    = MoreInter (VarInter s1) (VarInter s2)
 transformExpMore (Op More e1 e2) 
-   = MoreInter (transformExpMore e1) (transformExpMore e2) 
-transformExpMore (Op Plus e1 e2) 
-   = PlusInter (transformExpMore e1) (transformExpMore e2) 
-transformExpMore (Op Minus e1 e2) 
-   = MinusInter (transformExpMore e1) (transformExpMore e2) 
-transformExpMore (Op Mult e1 e2) 
-   = MultInter (transformExpMore e1) (transformExpMore e2) 
-transformExpMore (Op Div e1 e2) 
-   = DivInter (transformExpMore e1) (transformExpMore e2) 
-transformExpMore (Op Equal e1 e2) 
-   = EqualInter (transformExp e1) (transformExp e2) 
-transformExpMore Input 
-   = InputInter
+   = MoreInter (transformExp e1) (transformExp e2) 
 
 -------------------------------------------------------------   
 --Evaluation of Interval Expressions

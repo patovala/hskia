@@ -1,0 +1,8 @@
+      s=0;  
+      i=0;
+      while (6>i){
+       s = s + i;
+       i = i + 1;    
+      }
+      output s;
+
