@@ -1,4 +1,4 @@
-module TControl (getconst, getconst', getctrpoints, showctrpoints, putids, Pos)
+module TControl (getconst, getconst', getctrpoints, showctrpoints, putids, Pos, SCFGNode)
 where
 
 import TCFlow(evalwrpr, eval, CFGNode(..), pprint)

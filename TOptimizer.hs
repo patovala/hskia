@@ -68,8 +68,26 @@
 -- 10: ExitNode -> [9]
 --
 
-module TOptimizer (optimize)
+module TOptimizer (removedead)
 where
+import TVarStateOperations(entryState, getVarBottom, VarState(..),VarStates(..),
+                          getVarTop, getUnionPredIntervals, convertVartoVal,
+                          replaceVarVal,evalCondition, intersecVarState)
+import TControl(SCFGNode)
+import TInterval(Interval(..))
+
+
 -- TODO: this imports must be analyzed before integration
 
-optimize = 
+-- Function that receives the SCFGNodes and varstates and returns the SCFGNodes 
+-- without the dead code in terms of non reacheability
+removedead :: [SCFGNode] -> VarStates -> [SCFGNode]
+removedead _ [] = []
+removedead (x:xs)(y:ys)  
+        | isbottom y = removedead xs
+        | otherwise = x : (removedead xs)
+
+isbottom :: VarState -> Bool
+isbottom [] = True
+isbottom ((x, Empty):xs) = True && isbottom xs
+isbottom ((x, _):xs) = False && isbottom xs

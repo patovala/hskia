@@ -24,6 +24,8 @@ import TVarStateOperations(entryState, getVarBottom, VarState(..),VarStates(..),
                           getVarTop, getUnionPredIntervals, convertVartoVal,
                           replaceVarVal,evalCondition, intersecVarState)
 
+import TOptimizer(removedead)
+
 help :: String -> IO ()
 help tipprog 
   = do
@@ -76,6 +78,18 @@ doInterval fp
       let vars = [] : iterations controlpoints [] 0 const
       showintanalysis controlpoints vars 0 maxcolsize
 
+doOptimize :: FilePath -> IO()
+doOptimize fp
+ = do tipProgram <- readFile fp
+      let productions = eval (tParse tipProgram) 1  -- 1 cause entry 
+      let productions' = evalwrpr productions       -- Node has not 
+      let sproductions = putids productions' 0
+      let maxcolsize = maximum [length(pretyshow x) | (_, x) <- sproductions]
+      let controlpoints = getctrpoints sproductions sproductions
+      let const = getconst sproductions
+      let vars = [] : iterations controlpoints [] 0 const
+      let fixedctrpoints = removedead sproductions vars
+      showctrpoints fixedctrpoints 0 
 
 --------------------------------------------------------------------------------
 -- IntervalAnalysis
