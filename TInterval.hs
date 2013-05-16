@@ -105,7 +105,7 @@ instance Num Interval where
     -- [a + c, b + d]
     (Interval a  b) + (Interval c d) = Interval (a + c) (b + d)
     (Interval (Lb a) (Ub b)) - (Interval (Lb c) (Ub d)) =
-    Interval (Lb(a - d)) (Ub (b - c))
+     Interval (Lb(a - d)) (Ub (b - c))
     Empty - _ = Empty 
     _ - Empty = Empty 
     (Interval (Lb a)  (Ub b)) * (Interval (Lb c) (Ub d)) = 
