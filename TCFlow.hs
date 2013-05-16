@@ -29,6 +29,9 @@ data CFGNode
 --Data Type that agrupe a node and its predecessors
 type PredCFGNode = (CFGNode,[Int])
 
+--define a SCFGNode
+type SCFGNode = (Int, CFGNode)
+
 
 -------------------------------------------------------------------------------
 -- PV Given an Expresion return the list of nodes
@@ -64,7 +67,7 @@ evalwrpr productions = EntryNode:productions++[ExitNode]
 --
 --  Test: try to get the CFGNode list from the parser
 --
-----------------------------------------------------------------
+--------------------------------------------------------------------------------
 doit s = show val 
     where val = eval (tParse s) 0
 
@@ -93,5 +96,4 @@ pretyshow (GotoNode n) = "goto " ++ show n
 pretyshow (IfGotoNode expr n) = "if "++ show (prex expr) ++ " goto " ++ show n
 pretyshow (EntryNode) = "<entry>"
 pretyshow (ExitNode) = "<exit>"
-
 

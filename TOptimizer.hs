@@ -73,7 +73,7 @@ where
 import TVarStateOperations(entryState, getVarBottom, VarState(..),VarStates(..),
                           getVarTop, getUnionPredIntervals, convertVartoVal,
                           replaceVarVal,evalCondition, intersecVarState)
-import TControl(SCFGNode)
+import TControl(SCFGNode(..))
 import TInterval(Interval(..))
 
 
@@ -84,10 +84,13 @@ import TInterval(Interval(..))
 removedead :: [SCFGNode] -> VarStates -> [SCFGNode]
 removedead _ [] = []
 removedead (x:xs)(y:ys)  
-        | isbottom y = removedead xs
-        | otherwise = x : (removedead xs)
+        | isbottom y = removedead xs ys
+        | otherwise = x : (removedead xs ys)
 
 isbottom :: VarState -> Bool
 isbottom [] = True
 isbottom ((x, Empty):xs) = True && isbottom xs
 isbottom ((x, _):xs) = False && isbottom xs
+
+-- TODO: filtrar ifs muertos y gotos continuos
+

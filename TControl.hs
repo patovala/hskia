@@ -1,7 +1,8 @@
-module TControl (getconst, getconst', getctrpoints, showctrpoints, putids, Pos, SCFGNode)
+module TControl (getconst, getconst', getctrpoints, showctrpoints, 
+                putids, Pos, SCFGNode, spprint)
 where
 
-import TCFlow(evalwrpr, eval, CFGNode(..), pprint)
+import TCFlow(evalwrpr, eval, CFGNode(..), pprint, pretyshow)
 import TParse (tParse)
 import Syntax (Exp(..))
 
@@ -106,5 +107,14 @@ filtercons x = []
 
 -- This is a wrapper for avoid using a more elegant and elaborated SCFGNode
 getconst' cfgnodes = getconst (putids cfgnodes 0)
+
+--
+-- Print the SCFNode 
+--
+spprint :: [SCFGNode] -> IO()
+spprint [] = do putStrLn "" 
+spprint ((n, x):xs) = do 
+            putStrLn $ show n ++ ":" ++ pretyshow x 
+            spprint xs 
 
 

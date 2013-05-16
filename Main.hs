@@ -14,7 +14,7 @@ where
 
 import TCFlow(flowFile, evalwrpr, eval, CFGNode(..), PredCFGNode(..), pretyshow)
 import TParse (tParse, pretty, parseFile)
-import TControl (showctrpoints, getctrpoints, putids, Pos, getconst)
+import TControl (showctrpoints, getctrpoints, putids, Pos, getconst, spprint)
 import TInterval(Interval(..),Lb(..),Ub(..))
 import System.Environment (getProgName, getArgs)
 import TEvalInterval (InterExp(..),transformExp, evalInterExp)
@@ -87,9 +87,9 @@ doOptimize fp
       let maxcolsize = maximum [length(pretyshow x) | (_, x) <- sproductions]
       let controlpoints = getctrpoints sproductions sproductions
       let const = getconst sproductions
-      let vars = [] : iterations controlpoints [] 0 const
+      let vars = iterations controlpoints [] 0 const
       let fixedctrpoints = removedead sproductions vars
-      showctrpoints fixedctrpoints 0 
+      spprint fixedctrpoints 
 
 --------------------------------------------------------------------------------
 -- IntervalAnalysis
