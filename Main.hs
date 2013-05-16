@@ -243,14 +243,11 @@ wideningVars ((s1,i1):v1s) ((s2,i2):v2s) x=
 
 --Widening of intervals
 wideningInterval::Interval->Interval->[Int]->Interval
-wideningInterval Empty Empty _=
-   Empty
+wideningInterval Empty Empty _ = Empty
 
-wideningInterval Empty a _=
-   a
+wideningInterval Empty a _ = a
    
-wideningInterval a Empty  _=
-   Empty
+wideningInterval a Empty _ = Empty
    
 wideningInterval (Interval lb1 ub1) (Interval lb2 ub2) []
    |lb1 <= lb2 =
