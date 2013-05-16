@@ -1,3 +1,4 @@
+-------------------------------------------------------------------------------
 --  Author   : Diana Barreto - Ivan Patricio Valarezo
 --  Id       : 574386 - 601099
 --  Origin   : 06-May-2013
@@ -63,7 +64,7 @@ getVarTop (((AsgNode var exp),_):nodes)
    = ((var,(Interval MinInf PlusInf)):(getVarTop nodes)) 
 getVarTop (n:nodes)
    = getVarTop nodes
-
+-------------------------------------------------------------------------------
 -- This function recibe an interExp
 -- and a VarState with the values of 
 -- all variables and return the expression
@@ -88,7 +89,7 @@ convertVartoVal (EqualInter e1 e2) state
    = EqualInter (convertVartoVal e1 state) (convertVartoVal e2 state) 
 convertVartoVal InputInter _ 
    = InputInter
-   
+-------------------------------------------------------------------------------   
 --This function receive a List of Int            		  
 --The first VarStates is the state of the variables in the last iteration
 --The second VarStates is the state of the varialbes in the current iteration
@@ -141,7 +142,7 @@ getVarVal ((x,i1):state) y
    | otherwise = getVarVal state y 	
    
 -----Functions to eval branchs-------------------------------
-
+-------------------------------------------------------------------------------
 --This function receive the Expression the union state
 --and return the possible value of intersection for each
 --branch for variable 
@@ -153,7 +154,8 @@ evalCondition exp state branchTrue branchFalse reachable
          inter3 = evalInterExp interExp2
          newReachable = addReachables inter3 reachable branchTrue branchFalse
          interTrueFalse1 = getRightIntersect inter3 interExp1 state 
-         interTrueFalse2 = getLeftIntersect inter3 interExp1 state interTrueFalse1 
+         interTrueFalse2 = getLeftIntersect inter3 interExp1 state 
+                           interTrueFalse1 
       in (interTrueFalse2,newReachable)
 
 
@@ -163,7 +165,8 @@ getRightIntersect branch (MoreInter exp (VarInter s)) state
          interFalse1 = getVarTopState state
          exp1 = convertVartoVal exp state
          inter1 = evalInterExp exp1
-         intersect1 = getIntersectIntervals branch (MoreInter (ConInter inter1) (VarInter s))
+         intersect1 = getIntersectIntervals branch 
+                     (MoreInter (ConInter inter1) (VarInter s))
          interTrue2 = replaceVarVal interTrue1 s (snd(fst intersect1))
          interFalse2 = replaceVarVal interFalse1  s (snd(snd intersect1))
      in 
@@ -173,7 +176,8 @@ getRightIntersect branch (EqualInter exp (VarInter s)) state
          interFalse1 = getVarTopState state
          exp1 = convertVartoVal exp state
          inter1 = evalInterExp exp1
-         intersect1 = getIntersectIntervals branch (EqualInter (ConInter inter1) (VarInter s))
+         intersect1 = getIntersectIntervals branch 
+                     (EqualInter (ConInter inter1) (VarInter s))
          interTrue2 = replaceVarVal interTrue1 s (snd(fst intersect1))
          interFalse2 = replaceVarVal interFalse1  s (snd(snd intersect1))
      in 
@@ -181,19 +185,24 @@ getRightIntersect branch (EqualInter exp (VarInter s)) state
 getRightIntersect _ _ state
    = ((getVarTopState state),(getVarTopState state))
 
-getLeftIntersect::Interval->InterExp->VarState->(VarState,VarState)->(VarState,VarState)
-getLeftIntersect branch (MoreInter (VarInter s) exp) state (interTrue1, interFalse1)
+getLeftIntersect::Interval->InterExp->VarState->
+                 (VarState,VarState)->(VarState,VarState)
+getLeftIntersect branch (MoreInter (VarInter s) exp) state 
+                 (interTrue1, interFalse1)
    = let exp1 = convertVartoVal exp state
          inter1 = evalInterExp exp1
-         intersect1 = getIntersectIntervals branch (MoreInter (VarInter s) (ConInter inter1))
+         intersect1 = getIntersectIntervals branch 
+                     (MoreInter (VarInter s) (ConInter inter1))
          interTrue2 = replaceVarVal interTrue1 s (snd(fst intersect1))
          interFalse2 = replaceVarVal interFalse1  s (snd(snd intersect1))
      in 
          (interTrue2,interFalse2)
-getLeftIntersect branch (EqualInter (VarInter s) exp) state (interTrue1, interFalse1)
+getLeftIntersect branch (EqualInter (VarInter s) exp) state 
+                (interTrue1, interFalse1)
    = let exp1 = convertVartoVal exp state
          inter1 = evalInterExp exp1
-         intersect1 = getIntersectIntervals branch (EqualInter (VarInter s) (ConInter inter1))
+         intersect1 = getIntersectIntervals branch 
+                     (EqualInter (VarInter s) (ConInter inter1))
          interTrue2 = replaceVarVal interTrue1 s (snd(fst intersect1))
          interFalse2 = replaceVarVal interFalse1  s (snd(snd intersect1))
      in 
@@ -205,32 +214,43 @@ getLeftIntersect _ _ state (interTrue1, interFalse1)
 --and return a tuple that its first value is the
 --interval for true condition and the second value
 --is the interval for false condition  
-getIntersectIntervals::Interval->InterExp->((String,Interval),(String,Interval)) 
-getIntersectIntervals branch (MoreInter(ConInter (Interval (Lb i)(Ub i2)))(VarInter s)) =
-    -- | branch == Interval(Lb 1) (Ub 1) =
+getIntersectIntervals::Interval->InterExp->
+                       ((String,Interval),(String,Interval)) 
+getIntersectIntervals branch 
+                     (MoreInter(ConInter (Interval (Lb i)(Ub i2)))
+                     (VarInter s))
+    | branch == Interval(Lb 1) (Ub 1) =
        ((s,Interval MinInf (Ub (i-1))), (s,Interval (Lb i) PlusInf))
-    -- | branch == Interval(Lb 0) (Ub 0) =
-      -- ((s,Interval MinInf (Ub (i))), (s,Interval (Lb i) PlusInf))
+    | branch == Interval(Lb 0) (Ub 0) =
+       ((s,Interval MinInf (Ub (i))), (s,Interval (Lb i) PlusInf))
+    | branch == Interval MinInf PlusInf =
+       ((s,Interval MinInf (Ub (i-1))), (s,Interval (Lb i) PlusInf))
 
 getIntersectIntervals branch (MoreInter(ConInter _)(VarInter s))
    =((s,Interval MinInf PlusInf), (s,Interval MinInf PlusInf))  
    
-getIntersectIntervals branch (EqualInter(ConInter (Interval (Lb i)(Ub i2)))(VarInter s))
+getIntersectIntervals branch 
+                     (EqualInter(ConInter (Interval (Lb i)(Ub i2)))
+                     (VarInter s))
    =((s,(Interval (Lb i)(Ub i2))), (s,Interval MinInf PlusInf))
    
 getIntersectIntervals branch (EqualInter (ConInter _)(VarInter s))
    =((s,Interval MinInf PlusInf), (s,Interval MinInf PlusInf))
    
-getIntersectIntervals branch (MoreInter(VarInter s) (ConInter (Interval (Lb i)(Ub i2))))=
-    -- | branch == Interval(Lb 1) (Ub 1) =
+getIntersectIntervals branch (MoreInter(VarInter s) 
+                     (ConInter (Interval (Lb i)(Ub i2))))
+    | branch == Interval(Lb 1) (Ub 1) =
         ((s,Interval (Lb (i+1)) PlusInf), (s,Interval MinInf (Ub i)))
-    -- 	| branch == Interval(Lb 0) (Ub 0) =
-      --  ((s,Interval (Lb (i)) PlusInf), (s,Interval MinInf (Ub i)))
+    | branch == Interval(Lb 0) (Ub 0) =
+        ((s,Interval (Lb (i)) PlusInf), (s,Interval MinInf (Ub i)))
+    | branch == Interval MinInf PlusInf =
+        ((s,Interval (Lb (i+1)) PlusInf), (s,Interval MinInf (Ub i)))
 
 getIntersectIntervals branch (MoreInter(VarInter s) (ConInter _))
    =((s,Interval MinInf PlusInf), (s,Interval MinInf PlusInf))
    
-getIntersectIntervals branch (EqualInter(VarInter s) (ConInter (Interval (Lb i)(Ub i2))))
+getIntersectIntervals branch (EqualInter(VarInter s) 
+                     (ConInter (Interval (Lb i)(Ub i2))))
    =((s,(Interval (Lb i)(Ub i2))), (s,Interval MinInf PlusInf))
 
 getIntersectIntervals branch (EqualInter(VarInter s) (ConInter _))
@@ -248,4 +268,5 @@ addReachables (Interval  MinInf  PlusInf) reachable yes no
 
 getVarTopState::VarState->VarState
 getVarTopState [] = []
-getVarTopState ((s, i):states) = (s,(Interval MinInf PlusInf)):(getVarTopState states)
+getVarTopState ((s, i):states) = 
+   (s,(Interval MinInf PlusInf)):(getVarTopState states)

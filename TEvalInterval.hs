@@ -1,3 +1,4 @@
+-------------------------------------------------------------------------------
 --  File     : TEvalInterval.hs
 --  Author   : Diana Barreto - Patricio Valarezo
 --  Id       : 574386 - 601099
@@ -26,7 +27,8 @@ data InterExp
    | UnionInter InterExp InterExp
    | IntersectInter InterExp InterExp   
    deriving (Show,Eq)
-   
+  
+-------------------------------------------------------------------------------
 --Transfor aritmethic Tip Expresion to
 -- an Interval Expression
 transformExp::Exp->InterExp
@@ -59,7 +61,7 @@ transformExpMore (Op More (Var s1)(Var s2))
 transformExpMore (Op More e1 e2) 
    = MoreInter (transformExp e1) (transformExp e2) 
 
--------------------------------------------------------------   
+-------------------------------------------------------------------------------
 --Evaluation of Interval Expressions
 
 --Function that eval the Interval Expression
@@ -84,13 +86,17 @@ evalInterExp (MoreInter e1 e2)
    = let a = evalInterExp e1
          b = evalInterExp e2
      in
-     if( (a > b) == False) && ((b > a) == False) then
-        Interval MinInf PlusInf
+     if (a == b) then
+        Interval (Lb 0) (Ub 0)
      else
-        if(a>b) then
-           Interval (Lb 1) (Ub 1)
+        if( (a > b) == False) && ((b > a) == False) then
+           Interval MinInf PlusInf
         else
-           Interval (Lb 0) (Ub 0)
+           if(a>b) then
+              Interval (Lb 1) (Ub 1)
+           else
+             Interval (Lb 0) (Ub 0)
+
 evalInterExp (EqualInter e1 e2)  
    = let a = evalInterExp e1
          b = evalInterExp e2
@@ -105,6 +111,3 @@ evalInterExp (EqualInter e1 e2)
            Interval MinInf PlusInf
 evalInterExp InputInter
   = Interval MinInf PlusInf
-
-
-   
