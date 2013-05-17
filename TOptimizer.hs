@@ -74,6 +74,7 @@ import TVarStateOperations(entryState, getVarBottom, VarState(..),VarStates(..),
                           getVarTop, getUnionPredIntervals, convertVartoVal,
                           replaceVarVal,evalCondition, intersecVarState)
 import TControl(SCFGNode(..))
+import TCFlow(CFGNode(..))
 import TInterval(Interval(..))
 
 
@@ -82,15 +83,34 @@ import TInterval(Interval(..))
 -- Function that receives the SCFGNodes and varstates and returns the SCFGNodes 
 -- without the dead code in terms of non reacheability
 removedead :: [SCFGNode] -> VarStates -> [SCFGNode]
-removedead _ [] = []
-removedead (x:xs)(y:ys)  
-        | isbottom y = removedead xs ys
-        | otherwise = x : (removedead xs ys)
+removedead nodes = filterdead . filterbottom nodes 
 
+-- filter the bottom vars 
+filterbottom :: [SCFGNode] -> VarStates -> [SCFGNode]
+filterbottom _ [] = []
+filterbottom (x:xs)(y:ys)  
+        | isbottom y = filterbottom xs ys
+        | otherwise = x : (filterbottom xs ys)
+
+-- report all dead nodes from unreachable branches 
 isbottom :: VarState -> Bool
 isbottom [] = True
 isbottom ((x, Empty):xs) = True && isbottom xs
 isbottom ((x, _):xs) = False && isbottom xs
 
--- TODO: filtrar ifs muertos y gotos continuos
+-- filter all dead gotos (ifs)  pointing to a non existent node
+-- filter also gotos pointing to consecutives nodes
+filterdead :: [SCFGNode] -> [SCFGNode]
+filterdead testnodes = filter istherefunc testnodes 
+    where istherefunc (_, IfGotoNode _ w) = elem w nodelist 
+          istherefunc _ = True 
+          nodelist = [n | (n, _) <- testnodes]
 
+-- filter consecutive gotos nodes
+filtergotos :: [SCFGNode] -> [SCFGNode]
+filtergotos [] = []
+filtergotos (x@(_, GotoNode n):(m, _):xs) 
+    | n == m = (filtergotos xs)
+filtergotos (x:xs) = x : (filtergotos xs)
+
+-- renumerate the nodes to get a better shape of numbers
