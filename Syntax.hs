@@ -15,11 +15,27 @@ data Exp
   | Var String
   | Op Opkind Exp Exp
   | Input
-  deriving (Show,Eq)
+  deriving Eq
+
+instance Show Exp where
+    show (Con i) = show i
+    show (Var s) = s
+    show (Op opkind e1 e2) = show e1 ++ " " ++ show opkind ++ " " ++ show e2
+    show Input = "input"
 
 data Opkind
-  = Plus | Minus | Mult | Div | More | Equal | Nequal
-  deriving (Show,Eq)
+  = Plus | Minus | Mult | Div | More | Equal | Nequal | Lequal
+  deriving Eq
+
+instance Show Opkind where
+    show Plus = "+"
+    show Minus = "-"
+    show Mult = "*"
+    show Div = "/"
+    show More = ">"
+    show Equal = "="
+    show Nequal = "!="
+    show Lequal = "<="
 
 data Stmt
   = Asg String Exp
@@ -30,13 +46,13 @@ data Stmt
   deriving (Show,Eq)
 
 notIn :: String -> Exp -> Bool
-x `notIn` (Con _) 
+_ `notIn` (Con _) 
   = True
 x `notIn` (Var s) 
   = x /= s
 x `notIn` (Op _ e1 e2)
   = x `notIn` e1 && x `notIn` e2
-x `notIn` Input
+_ `notIn` Input
   = True
 
 vars :: Exp -> [String]

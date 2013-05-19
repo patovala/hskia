@@ -2,7 +2,7 @@ module TCFlow (doit, doto, flowFile, CFGNode(..), evalwrpr, eval, pprint, pretys
 where
 
 import Syntax
-import TParse (tParse, parseFile, prex)
+import TParse (tParse, parseFile)
 
 {-------------------------------------------------------------------
 
@@ -74,9 +74,9 @@ doto s = eval (tParse s) 0
 -- Node sequence productions pretty print 
 --
 pprint :: [CFGNode] -> Int -> IO()
-pprint [] n = do putStrLn "" 
+pprint [] n = do putStr "" 
 pprint (x:xs) n = do 
-            putStrLn $ show n ++ ":" ++ pretyshow x 
+            putStrLn $ show n ++ ": " ++ pretyshow x 
             pprint xs (n + 1)
 
 flowFile :: FilePath -> IO() 
@@ -87,11 +87,9 @@ flowFile fp
       pprint productions' 0                         -- yet there
 
 pretyshow :: CFGNode -> String
-pretyshow (AsgNode str expr) = str ++ " = " ++ show (prex expr)
-pretyshow (OutputNode expr) = "output " ++ show (prex expr)
+pretyshow (AsgNode str expr) = str ++ " = " ++ show (expr)
+pretyshow (OutputNode expr) = "output " ++ show (expr)
 pretyshow (GotoNode n) = "goto " ++ show n
-pretyshow (IfGotoNode expr n) = "if "++ show (prex expr) ++ " goto " ++ show n
+pretyshow (IfGotoNode expr n) = "if "++ show (expr) ++ " goto " ++ show n
 pretyshow (EntryNode) = "<entry>"
 pretyshow (ExitNode) = "<exit>"
-
-
