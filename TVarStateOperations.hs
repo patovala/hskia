@@ -6,6 +6,7 @@
 --           : to do operations between varState
 --           : include also the operations to evaluate 
 --           : the branch and the conditions for each branch
+-------------------------------------------------------------------------------
 
 module TVarStateOperations(VarState(..),VarStates(..),
  getVarTop, getUnionPredIntervals, convertVartoVal, replaceVarVal, 

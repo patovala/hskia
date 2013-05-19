@@ -100,12 +100,12 @@ iterations::[PredCFGNode]->VarStates->Int->[Int]->VarStates
 iterations nodes x 0 lmarks	
    = let initialIteration = iteration nodes 0 lmarks [] [] 
                             (entryState (length nodes) 
-                            (nub(getVarBottom nodes))) []
-        -- secondIteration = iteration nodes 0 lmarks [] [] initialIteration []
-        -- thirdIteration = iteration nodes 0 lmarks [] [] secondIteration []
-        -- fourIteration = iteration nodes 0 lmarks [] [] thirdIteration  []
-     in  initialIteration
-         -- iterations nodes secondIteration 1 lmarks 
+			    (nub(getVarBottom nodes))) []
+         secondIteration = iteration nodes 0 lmarks [] [] initialIteration []
+         thirdIteration = iteration nodes 0 lmarks [] [] secondIteration []
+         fourIteration = iteration nodes 0 lmarks [] [] thirdIteration  []
+     in  --secondIteration
+         iterations nodes initialIteration 1 lmarks 
 
 iterations nodes stateIn i lmarks
    |i == 3 = 
@@ -137,7 +137,8 @@ iteration::[PredCFGNode]->Int->[Int]->VarState->VarState->
 iteration [] _ _ _ _ _ stateIn = stateIn
 iteration ((EntryNode,_):nodes) current _ _ _ stateOld stateIn
    =  iteration nodes  (current+1) ((current+1):[]) 
-                       [] [] stateOld [nub(getVarTop nodes)]
+                       --[] [] stateOld [nub(getVarTop nodes)]
+		       [] [] stateOld [nub(getVarBottom nodes)]
 iteration (((AsgNode var exp),n):nodes) current reachable intersect 
           union stateOld stateIn
    | elem current reachable
@@ -326,5 +327,3 @@ showvars ((v, i):xs) = do
             show v ++ "=" ++ show i ++ " " ++ showvars xs
 
 filler n = replicate n ' '
-
-
