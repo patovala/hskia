@@ -63,6 +63,9 @@ instance Ord Interval where
         | a <= c && b <= d = LT
         | a > c && b > d = GT
         | otherwise = EQ
+    compare Empty Empty = EQ
+    compare Empty _ = LT
+    compare _ Empty = GT
 
 instance Num Lb where
     (+) MinInf MinInf = MinInf 
