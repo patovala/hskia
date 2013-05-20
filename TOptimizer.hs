@@ -83,7 +83,8 @@ import TInterval(Interval(..))
 -- Function that receives the SCFGNodes and varstates and returns the SCFGNodes 
 -- without the dead code in terms of non reacheability
 removedead :: [SCFGNode] -> VarStates -> [SCFGNode]
-removedead nodes = filterdead . filterbottom nodes 
+--removedead nodes = renumerate . filtergotos . filterdead . filterbottom nodes 
+removedead nodes = filterbottom nodes 
 
 -- filter the bottom vars 
 filterbottom :: [SCFGNode] -> VarStates -> [SCFGNode]
@@ -113,4 +114,24 @@ filtergotos (x@(_, GotoNode n):(m, _):xs)
     | n == m = (filtergotos xs)
 filtergotos (x:xs) = x : (filtergotos xs)
 
+-- PV
 -- renumerate the nodes to get a better shape of numbers
+renumerate :: [SCFGNode] -> [SCFGNode]
+renumerate nodes = zip [0..] (map fixgotofunc cfgnodes)
+    where 
+          cfgnodes = [node | (_, node) <- nodes] 
+          nodepairs = zip [i | (i, _) <- nodes] [0..] 
+          fixgotofunc (IfGotoNode e n) = (IfGotoNode e (findnode n)) 
+          fixgotofunc (GotoNode n) = (GotoNode (findnode n)) 
+          fixgotofunc s = s 
+          findnode m = if ((matches m) /= []) then snd ( head (matches m)) else -1
+          matches m = filter (\(k, v) -> m == k) $ nodepairs
+          -- findnode m = m 
+
+
+-- Se pierden las referencias así que hay que manejar caso por caso y reestructurar
+-- todo, justo despues de que ha eliminado algún nodo, se debe correr un verificador
+-- que nos diga cuando un nodo ha desaparecido y ya no es alcanzable, se debe 
+-- eliminar toda esa rama, y volver nuevamente a rodar el comprobador de sentido
+-- el comprobador de sentido recursivo me dice hasta cuando se debe volver a 
+-- intentar conseguir semántica en el programa

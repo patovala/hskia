@@ -14,7 +14,8 @@ where
 
 import TCFlow(flowFile, evalwrpr, eval, CFGNode(..), PredCFGNode(..), pretyshow)
 import TParse (tParse, pretty, parseFile)
-import TControl (showctrpoints, getctrpoints, putids, Pos, getconst, spprint)
+import TControl (showctrpoints, getctrpoints, putids, Pos, getconst
+                ,spprint , spprint2)
 import TInterval(Interval(..),Lb(..),Ub(..))
 import System.Environment (getProgName, getArgs)
 import TEvalInterval (InterExp(..),transformExp, evalInterExp)
@@ -84,12 +85,12 @@ doOptimize fp
       let productions = eval (tParse tipProgram) 1  -- 1 cause entry 
       let productions' = evalwrpr productions       -- Node has not 
       let sproductions = putids productions' 0
-      let maxcolsize = maximum [length(pretyshow x) | (_, x) <- sproductions]
       let controlpoints = getctrpoints sproductions sproductions
       let const = getconst sproductions
       let vars = iterations controlpoints [] 0 const
       let fixedctrpoints = removedead sproductions vars
-      spprint fixedctrpoints 
+      spprint2 sproductions fixedctrpoints 
+      --spprint fixedctrpoints 
 
 --------------------------------------------------------------------------------
 -- IntervalAnalysis
