@@ -75,7 +75,7 @@ import TVarStateOperations(entryState, getVarBottom, VarState(..),VarStates(..),
                           replaceVarVal,evalCondition, intersecVarState)
 import TControl(SCFGNode(..))
 import TCFlow(CFGNode(..))
-import TInterval(Interval(..))
+import TInterval(Interval(..),AbsValue(..))
 import Data.List(intersect)
 
 
@@ -91,14 +91,14 @@ removedead nodes = renumerate . filtergotos . filterdead . filterbottom nodes
 filterbottom :: [SCFGNode] -> VarStates -> [SCFGNode]
 filterbottom _ [] = []
 filterbottom (x:xs)(y:ys)  
-        | isbottom y = filterbottom xs ys
+        | isNoReach y = filterbottom xs ys
         | otherwise = x : (filterbottom xs ys)
 
 -- report all dead nodes from unreachable branches 
-isbottom :: VarState -> Bool
-isbottom [] = True
-isbottom ((x, Empty):xs) = True && isbottom xs
-isbottom ((x, _):xs) = False && isbottom xs
+isNoReach :: VarState -> Bool
+isNoReach [] = True
+isNoReach ((x, NoReach):xs) = True && isNoReach xs
+isNoReach ((x, _):xs) = False && isNoReach xs
 
 -- filter all dead gotos (ifs)  pointing to a non existent node
 -- filter also gotos pointing to consecutives nodes

@@ -81,7 +81,7 @@ doInterval fp
                                 (n, x) <- sproductions] + 8
       let controlpoints = getctrpoints sproductions sproductions
       let const = getconst sproductions
-      let vars = [] : iterations controlpoints [] 0 const
+      let vars = [] : iterations controlpoints [] 0 0 const
       showintanalysis controlpoints vars 0 maxcolsize
 
 doOptimize :: FilePath -> IO()
@@ -92,7 +92,7 @@ doOptimize fp
       let sproductions = putids productions' 0
       let controlpoints = getctrpoints sproductions sproductions
       let const = getconst sproductions
-      let vars = iterations controlpoints [] 0 const
+      let vars = iterations controlpoints [] 0 0 const
       let fixedctrpoints = removedead sproductions vars
       spprint2 sproductions fixedctrpoints 
       --spprint fixedctrpoints 
@@ -114,30 +114,32 @@ doOptimize fp
 --variables state before the next operation
 --int i to take control of the number of operations
 --[int] with the landmarks set 
-iterations::[PredCFGNode]->VarStates->Int->[Int]->VarStates
-iterations nodes x 0 lmarks	
+iterations::[PredCFGNode]->VarStates->Int->Int->[Int]->VarStates
+iterations nodes x 0 0 lmarks
    = let initialIteration = iteration nodes 0 lmarks [] [] 
                             (entryState (length nodes) 
                             (nub(getVarBottom nodes))) []
          secondIteration = iteration nodes 0 lmarks [] [] initialIteration []
          thirdIteration = iteration nodes 0 lmarks [] [] secondIteration []
          fourIteration = iteration nodes 0 lmarks [] [] thirdIteration  []
-     in  --initialIteration
-         iterations nodes initialIteration 1 lmarks 
+     in  --secondIteration--initialIteration
+         iterations nodes initialIteration 1 0 lmarks 
 
-iterations nodes stateIn i lmarks
+iterations nodes stateIn i 4 lmarks = stateIn 
+
+iterations nodes stateIn i j lmarks
    |i == 3 = 
       let newState = iteration nodes 0 lmarks [] [] stateIn []
           stateWidening = wideningState stateIn newState lmarks
       in
-          iterations nodes stateWidening 1 lmarks 
+          iterations nodes stateWidening 1 (j+1) lmarks 
    |otherwise =
      let newState = iteration nodes  0 lmarks [] [] stateIn []
      in 
         if(stateIn == newState) then
            newState
         else
-           iterations nodes newState (i+1) lmarks
+           iterations nodes newState (i+1) j lmarks
 
 --This Algorithm assign the value of the variable evaluating each node 
 --The parameters are:
@@ -161,7 +163,8 @@ iteration (((AsgNode var exp),n):nodes) current reachable intersect
           union stateOld stateIn
    | elem current reachable
       = let 
-           pastState = getUnionPredIntervals n stateOld stateIn 
+           pastState1 = getUnionPredIntervals n stateOld stateIn 
+           pastState = changeNoReach pastState1
            inter1 =  transformExp exp 
            inter2 =  convertVartoVal inter1 pastState
            inter3 =  evalInterExp inter2
@@ -178,7 +181,8 @@ iteration (((IfGotoNode exp next),n):nodes)  current reachable
           intersect union stateOld stateIn
     | elem current reachable
       = let 
-           pastState = getUnionPredIntervals n stateOld stateIn
+           pastState1 = getUnionPredIntervals n stateOld stateIn 
+           pastState = changeNoReach pastState1
            eval = evalCondition exp pastState next (current+1) reachable
            trueIntersec = fst(fst eval)
            falseIntersec = snd(fst eval)
@@ -198,9 +202,10 @@ iteration (((GotoNode next),n):nodes) current reachable intersect
           union stateOld stateIn
     | elem current reachable
       = let
-           pastState = getPastState union 
-                      (getUnionPredIntervals n stateOld stateIn) 
-           newState = intersecVarState pastState intersect 
+        pastState1 = getPastState union 
+                     (getUnionPredIntervals n stateOld stateIn) 
+        pastState = changeNoReach pastState1
+        newState = intersecVarState pastState intersect 
         in iteration nodes (current+1) (next:reachable) 
            [] [] stateOld (stateIn ++ [newState])
     | otherwise
@@ -213,7 +218,8 @@ iteration (((OutputNode exp),n):nodes)  current reachable
           intersect union stateOld stateIn
     | elem current reachable
       = let
-            state = getUnionPredIntervals n stateOld stateIn
+           state1 = getUnionPredIntervals n stateOld stateIn
+           state = changeNoReach state1
         in  iteration nodes (current+1) ((current+1):reachable) [] [] 
             stateOld (stateIn ++ [state])
     | otherwise
@@ -225,7 +231,8 @@ iteration (((ExitNode),n):nodes)  current reachable intersect
           union stateOld stateIn
     | elem current reachable
         = let
-             pastState = getUnionPredIntervals n stateOld stateIn
+             pastState1 = getUnionPredIntervals n stateOld stateIn
+             pastState = changeNoReach pastState1
           in (stateIn ++ [pastState])
     | otherwise
        = let         
@@ -241,6 +248,12 @@ changeBottom ((var1,AInterval Empty):vars1)((var2,inter2):vars2)
 changeBottom ((var1,AInterval inter1):vars1)((var2,AInterval inter2):vars2)
    = (var1,AInterval(inter1)):(changeBottom vars1 vars2)
 
+changeNoReach::VarState->VarState
+changeNoReach [] = []
+changeNoReach ((var1,NoReach):vars1)
+   = (var1,(AInterval Empty)):(changeNoReach vars1)
+changeNoReach (s:vars1)
+   = s:(changeNoReach vars1)
 
 getPastState::VarState->VarState->VarState
 getPastState conditional predecessors=

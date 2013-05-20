@@ -1,0 +1,13 @@
+getIntersectIntervals::Interval->InterExp->((String,Interval),(String,Interval)) 
+(MoreInter(ConInter (Interval (Lb i)(Ub i2)))(VarInter s))
+
+let a = Interval (Lb 1) (Ub 1)
+let b = (MoreInter(ConInter (Interval (Lb 12)(Ub 12)))(VarInter "n"))
+getIntersectIntervals a b
+
+let exp1 = (Op More (Con 12) (Var "n"))
+let var = [("n", (Interval (Lb 0) (Ub 0)))]
+
+evalCondition::Exp->VarState->Int->Int->[Int]->((VarState,VarState),[Int])
+let exp1 = (Op More (Var "j") (Var "i"))
+let var = [("j", (Interval (Lb 0) (Ub 0))) ("i", (Interval (Lb 0) (Ub 0)))]
