@@ -16,7 +16,7 @@ import TCFlow(flowFile, evalwrpr, eval, CFGNode(..), PredCFGNode(..),
               pretyshow)
 import TParse (tParse, pretty, parseFile)
 import TControl (showctrpoints, getctrpoints, putids, Pos, getconst)
-import TInterval(Interval(..),Lb(..),Ub(..))
+import TInterval(Interval(..),Lb(..),Ub(..), AbsValue(..))
 import System.Environment (getProgName, getArgs)
 import TEvalInterval (InterExp(..),transformExp, evalInterExp)
 import Data.List
@@ -24,7 +24,7 @@ import Syntax (Exp(..),Opkind(..),Stmt(..))
 import TVarStateOperations(entryState, getVarBottom, VarState(..),
                            VarStates(..),getVarTop, getUnionPredIntervals, 
                            convertVartoVal,replaceVarVal,evalCondition, 
-                           intersecVarState)
+                           intersecVarState,getVarNoReachState)
 
 help :: String -> IO ()
 help tipprog 
@@ -100,11 +100,11 @@ iterations::[PredCFGNode]->VarStates->Int->[Int]->VarStates
 iterations nodes x 0 lmarks	
    = let initialIteration = iteration nodes 0 lmarks [] [] 
                             (entryState (length nodes) 
-			    (nub(getVarBottom nodes))) []
+                            (nub(getVarBottom nodes))) []
          secondIteration = iteration nodes 0 lmarks [] [] initialIteration []
          thirdIteration = iteration nodes 0 lmarks [] [] secondIteration []
          fourIteration = iteration nodes 0 lmarks [] [] thirdIteration  []
-     in  --secondIteration
+     in  --initialIteration
          iterations nodes initialIteration 1 lmarks 
 
 iterations nodes stateIn i lmarks
@@ -138,7 +138,7 @@ iteration [] _ _ _ _ _ stateIn = stateIn
 iteration ((EntryNode,_):nodes) current _ _ _ stateOld stateIn
    =  iteration nodes  (current+1) ((current+1):[]) 
                        --[] [] stateOld [nub(getVarTop nodes)]
-		       [] [] stateOld [nub(getVarBottom nodes)]
+                      [] [] stateOld [nub(getVarBottom nodes)]
 iteration (((AsgNode var exp),n):nodes) current reachable intersect 
           union stateOld stateIn
    | elem current reachable
@@ -153,7 +153,7 @@ iteration (((AsgNode var exp),n):nodes) current reachable intersect
            [] [] stateOld (stateIn ++ [state])
     | otherwise 
       = let
-           state2 = stateOld !! current
+           state2 = getVarNoReachState(stateOld !! current)
         in iteration nodes  (current+1) reachable [] [] 
            stateOld (stateIn ++ [state2]) 
 iteration (((IfGotoNode exp next),n):nodes)  current reachable 
@@ -171,7 +171,7 @@ iteration (((IfGotoNode exp next),n):nodes)  current reachable
            pastState stateOld (stateIn ++ [newState])   
     |otherwise 
       = let 
-           state = stateOld !! current
+           state = getVarNoReachState (stateOld !! current)
            eval = evalCondition exp state next (current+1) reachable
            falseIntersec = snd(fst eval)
         in iteration nodes (current+1) reachable falseIntersec state 
@@ -187,7 +187,7 @@ iteration (((GotoNode next),n):nodes) current reachable intersect
            [] [] stateOld (stateIn ++ [newState])
     | otherwise
       = let   
-           state = stateOld !! current
+           state = getVarNoReachState (stateOld !! current)
         in
            iteration nodes (current+1) reachable [] [] 
            stateOld (stateIn ++ [state])
@@ -200,7 +200,7 @@ iteration (((OutputNode exp),n):nodes)  current reachable
             stateOld (stateIn ++ [state])
     | otherwise
        = let         
-            state = stateOld !! current
+            state = getVarNoReachState (stateOld !! current)
          in iteration nodes  (current+1) ((current+1):reachable) [] [] 
             stateOld (stateIn ++ [state])
 iteration (((ExitNode),n):nodes)  current reachable intersect 
@@ -211,15 +211,17 @@ iteration (((ExitNode),n):nodes)  current reachable intersect
           in (stateIn ++ [pastState])
     | otherwise
        = let         
-            state = stateOld !! current
+            state = getVarNoReachState (stateOld !! current)
          in (stateIn ++ [state])
 
 changeBottom::VarState->VarState->VarState
 changeBottom [] [] =[]
-changeBottom ((var1,Empty):vars1)((var2,inter2):vars2)
+changeBottom ((var1,NoReach):vars1)((var2,inter2):vars2)
    = (var1,(inter2)):(changeBottom vars1 vars2)
-changeBottom ((var1,inter1):vars1)((var2,inter2):vars2)
-   = (var1,(inter1)):(changeBottom vars1 vars2)
+changeBottom ((var1,AInterval Empty):vars1)((var2,inter2):vars2)
+   = (var1,(inter2)):(changeBottom vars1 vars2)
+changeBottom ((var1,AInterval inter1):vars1)((var2,AInterval inter2):vars2)
+   = (var1,AInterval(inter1)):(changeBottom vars1 vars2)
 
 
 getPastState::VarState->VarState->VarState
@@ -243,37 +245,44 @@ wideningVars ((s1,i1):v1s) ((s2,i2):v2s) x=
    (s1,(wideningInterval i1 i2 x)):(wideningVars v1s v2s x)
 
 --Widening of intervals
-wideningInterval::Interval->Interval->[Int]->Interval
-wideningInterval Empty Empty _ = Empty
+wideningInterval::AbsValue->AbsValue->[Int]->AbsValue
 
-wideningInterval Empty a _ = a
+wideningInterval NoReach NoReach _ = NoReach
+
+wideningInterval NoReach a _ = a
+
+wideningInterval a NoReach  _ = a
+
+wideningInterval (AInterval Empty) (AInterval Empty) _ = AInterval Empty
+
+wideningInterval (AInterval Empty) a _ = a
    
-wideningInterval a Empty _ = Empty
+wideningInterval a (AInterval Empty) _ = (AInterval Empty)
    
-wideningInterval (Interval lb1 ub1) (Interval lb2 ub2) []
+wideningInterval (AInterval(Interval lb1 ub1)) (AInterval(Interval lb2 ub2)) []
    |lb1 <= lb2 =
       if (ub1>=ub2) then
-         Interval lb1 ub1
+         AInterval(Interval lb1 ub1)
       else
-         Interval lb1 PlusInf
+         AInterval(Interval lb1 PlusInf)
    |otherwise =
       if (ub1>=ub2) then
-         Interval MinInf ub1
+         AInterval(Interval MinInf ub1)
       else
-         Interval MinInf PlusInf
+         AInterval(Interval MinInf PlusInf)
 
-wideningInterval (Interval lb1 ub1) (Interval lb2 ub2) list
+wideningInterval (AInterval(Interval lb1 ub1)) (AInterval(Interval lb2 ub2)) list
    |lb1 <= lb2 =
       if (ub1>=ub2) then
-         Interval lb1 ub1
+         AInterval(Interval lb1 ub1)
       else
-         Interval lb1 (minimumInterval (removeSmaller (valueUb ub2) list))
+         AInterval(Interval lb1 (minimumInterval (removeSmaller (valueUb ub2) list)))
    |otherwise =
       if (ub1>=ub2) then
-         Interval (maximumInterval(removeBigger (valueLb lb2) list)) ub1
+         AInterval(Interval (maximumInterval(removeBigger (valueLb lb2) list)) ub1)
       else
-         Interval (maximumInterval(removeBigger (valueLb lb2) list)) 
-                  (minimumInterval (removeSmaller (valueUb ub2) list))
+         AInterval(Interval (maximumInterval(removeBigger (valueLb lb2) list)) 
+                  (minimumInterval (removeSmaller (valueUb ub2) list)))
 
 
 
@@ -320,7 +329,9 @@ showintanalysis ((node, _):xs) (y:ys) n w = do
 
 showvars :: VarState -> String
 showvars [] = ""
-showvars ((v, i):xs) = do 
+showvars ((v, AInterval i):xs) = do 
             show v ++ "=" ++ show i ++ " " ++ showvars xs
+showvars ((v, NoReach):xs) = do 
+            show v ++ "=" ++ "NR" ++ " " ++ showvars xs
 
 filler n = replicate n ' '

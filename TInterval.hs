@@ -3,10 +3,15 @@
 --  Origin   : 06-May-2013
 --  Purpose  : Implementation of Interval Operations
 
-module TInterval (Interval(..),Lb(..),Ub(..), union, intersec)
+module TInterval (Interval(..),Lb(..),Ub(..), AbsValue(..), union, intersec)
 where
 import Data.List(sort)
 
+data AbsValue
+   = NoReach 
+   | AInterval {interval :: Interval}
+   deriving (Eq)
+   
 -- Interval ej: [-1, 1] or [-oo, oo] or [1,oo]
 data Interval 
    = Empty 
@@ -139,89 +144,97 @@ instance Fractional Interval where
     fromRational = undefined
 
 -- PV this define the union of two intervals
-union :: Interval -> Interval -> Interval
-union Empty x = x
-union x Empty = x
-union (Interval lb1 ub1) (Interval lb2 ub2) = 
-   Interval (min lb1 lb2) (max ub1 ub2)
+union :: AbsValue -> AbsValue -> AbsValue
+union (AInterval Empty) (AInterval Empty) = (AInterval Empty)
+union (AInterval Empty) x = x
+union x (AInterval Empty) = x
+
+union NoReach NoReach = NoReach
+union NoReach x = x
+union x NoReach = x
+
+union (AInterval (Interval lb1 ub1)) (AInterval(Interval lb2 ub2)) = 
+   (AInterval(Interval (min lb1 lb2) (max ub1 ub2)))
 
 -- PV this define the intersection of two intervals
-intersec :: Interval -> Interval -> Interval
-intersec Empty x = Empty 
-intersec x Empty = Empty 
-intersec (Interval (Lb a) (Ub b)) (Interval (Lb c) (Ub d)) =
-  (Interval (Lb b') (Ub c'))
-    where (_:b':c':_) = sort([a,b,c,d])
+intersec :: AbsValue -> AbsValue -> AbsValue
+intersec (AInterval Empty)(AInterval Empty) = (AInterval Empty)
+intersec (AInterval Empty) x = (AInterval Empty)
+intersec x (AInterval Empty) = (AInterval Empty) 
+intersec NoReach NoReach = NoReach
+intersec NoReach x = NoReach
+intersec x NoReach = NoReach
+
+
+intersec (AInterval (Interval (Lb a) (Ub b))) (AInterval (Interval (Lb c) (Ub d)))  
+    | b' >= c'   = (AInterval(Interval (Lb b') (Ub c')))
+    | otherwise  = (AInterval Empty)
+        where (_:b':c':_) = sort([a,b,c,d])
         
-intersec (Interval MinInf PlusInf) i = i 
-intersec i (Interval MinInf PlusInf) = i 
+intersec (AInterval(Interval MinInf PlusInf)) i = i 
+intersec i (AInterval (Interval MinInf PlusInf)) = i 
 -- new rules for infinites
 -- both lb with -oo
-intersec (Interval lb1 ub1) (Interval lb2 ub2)
-    | lb1 == MinInf && lb2 == MinInf = Interval MinInf ub
+intersec (AInterval(Interval lb1 ub1)) (AInterval (Interval lb2 ub2))
+    | lb1 == MinInf && lb2 == MinInf = (AInterval (Interval MinInf ub))
                 where ub = if (ub1 >= ub2) then ub2 else ub1
 -- both ub with oo
-intersec (Interval lb1 ub1) (Interval lb2 ub2)
-    | ub1 == PlusInf && ub2 == PlusInf = Interval lb PlusInf
+intersec (AInterval (Interval lb1 ub1)) (AInterval (Interval lb2 ub2))
+    | ub1 == PlusInf && ub2 == PlusInf = (AInterval (Interval lb PlusInf))
                 where lb = if (lb1 >= lb2) then lb2 else lb1
 -- lb1 == -oo and ub2 == oo ub1 can't be oo since it was previously catched
-intersec (Interval lb1 ub1) (Interval lb2 ub2)
-    | lb1 == MinInf && ub2 == PlusInf = r
-                where (Lb x) = lb2
-                      (Ub y) = ub1
-                      r = case (compare x y) of
-                                EQ -> Empty
-                                GT -> Empty 
-                                LT -> (Interval (Lb y) (Ub x))
+intersec (AInterval(Interval lb1 ub1)) (AInterval(Interval lb2 ub2))
+    | lb1 == MinInf && ub2 == PlusInf = (AInterval r)
+        where (Lb x) = lb2
+              (Ub y) = ub1
+              r = case (compare x y) of
+                        EQ -> Empty
+                        GT -> Empty 
+                        LT -> (Interval (Lb y) (Ub x))
 
 -- ub1 == oo and lb2 == -oo ub2 can't be oo since it was previously catched
-intersec (Interval lb1 ub1) (Interval lb2 ub2)
-    | lb2 == MinInf && ub1 == PlusInf = r
-                where (Lb x) = lb1
-                      (Ub y) = ub2
-                      r = case (compare x y) of
-                                EQ -> Empty
-                                GT -> Empty
-                                LT -> Interval (Lb x) (Ub y)
+intersec (AInterval(Interval lb1 ub1)) (AInterval(Interval lb2 ub2))
+    | lb2 == MinInf && ub1 == PlusInf = (AInterval r)
+        where (Lb x) = lb1
+              (Ub y) = ub2
+              r = case (compare x y) of
+                        EQ -> Empty
+                        GT -> Empty
+                        LT -> Interval (Lb x) (Ub y)
 -- [-oo,a] [b,c]
-intersec (Interval MinInf ub1) (Interval lb2 ub2) = r
-                where
-                    (Ub x) = ub1
-                    (Lb y) = lb2
-                    (Ub z) = ub2
-                    -- IPV because intervals seems to be inclusive
-                    -- r = if (x<=y && x<=z) then Empty 
-                    --else (Interval (Lb x') (Ub y'))
-                    r = if (x<y && x<z) then Empty 
-                        else (Interval (Lb x') (Ub y'))
-                    (x':y':z':[]) = Data.List.sort (x:y:z:[])
+intersec (AInterval (Interval MinInf ub1)) (AInterval (Interval lb2 ub2)) = (AInterval r)
+        where
+            (Ub x) = ub1
+            (Lb y) = lb2
+            (Ub z) = ub2
+            -- IPV because intervals seems to be inclusive
+            -- r = if (x<=y && x<=z) then Empty else (Interval (Lb x') (Ub y'))
+            r = if (x<y && x<z) then Empty else (Interval (Lb x') (Ub y'))
+            (x':y':z':[]) = sort (x:y:z:[])
 -- [a,oo] [b,c]
-intersec (Interval lb1 PlusInf) (Interval lb2 ub2) = r
-                where
-                    (Lb x) = lb1
-                    (Lb y) = lb2
-                    (Ub z) = ub2
-                    r = if (x>y && x>z) then Empty 
-                        else (Interval (Lb y') (Ub z'))
-                    (x':y':z':[]) = Data.List.sort (x:y:z:[])
+intersec (AInterval(Interval lb1 PlusInf)) (AInterval(Interval lb2 ub2)) = (AInterval r)
+        where
+            (Lb x) = lb1
+            (Lb y) = lb2
+            (Ub z) = ub2
+            r = if (x>y && x>z) then Empty else (Interval (Lb y') (Ub z'))
+            (x':y':z':[]) = Data.List.sort (x:y:z:[])
 -- [a,b] [-oo,c]
-intersec (Interval lb1 ub1) (Interval MinInf ub2) = r
-                where
-                    (Lb x) = lb1
-                    (Ub y) = ub1
-                    (Ub z) = ub2
-                    r = if (z<x && z<y) then Empty 
-                        else (Interval (Lb x') (Ub y'))
-                    (x':y':z':[]) = Data.List.sort (x:y:z:[])
+intersec (AInterval(Interval lb1 ub1)) (AInterval(Interval MinInf ub2)) = (AInterval r)
+        where
+            (Lb x) = lb1
+            (Ub y) = ub1
+            (Ub z) = ub2
+            r = if (z<x && z<y) then Empty else (Interval (Lb x') (Ub y'))
+            (x':y':z':[]) = sort (x:y:z:[])
 -- [a,b] [c,oo]
-intersec (Interval lb1 ub1) (Interval lb2 PlusInf) = r
-                where
-                    (Lb x) = lb1
-                    (Ub y) = ub1
-                    (Lb z) = lb2
-                    r = if (z>x && z>y) then Empty 
-                        else (Interval (Lb y') (Ub z'))
-                    (x':y':z':[]) = Data.List.sort (x:y:z:[])
+intersec (AInterval (Interval lb1 ub1)) (AInterval(Interval lb2 PlusInf)) = (AInterval r)
+        where
+            (Lb x) = lb1
+            (Ub y) = ub1
+            (Lb z) = lb2
+            r = if (z>x && z>y) then Empty else (Interval (Lb y') (Ub z'))
+            (x':y':z':[]) = sort (x:y:z:[])
 
 -- intersec a b = error ("interval error " ++ (show a) ++ (show b))
 

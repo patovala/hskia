@@ -10,7 +10,7 @@ module TEvalInterval (InterExp(..),transformExp, evalInterExp)
 where
 import Data.List
 import Syntax (Exp(..),Opkind(..),Stmt(..))
-import TInterval(Interval(..),Lb(..),Ub(..), intersec)
+import TInterval(Interval(..),Lb(..),Ub(..),AbsValue(..), intersec)
 import qualified TInterval(union)
 
 --Representation of interval expressions
@@ -100,7 +100,7 @@ evalInterExp (MoreInter e1 e2)
 evalInterExp (EqualInter e1 e2)  
    = let a = evalInterExp e1
          b = evalInterExp e2
-         c = intersec a b
+         c = interval (intersec (AInterval a) (AInterval b))
      in
      if( a == b) then
         Interval (Lb 1) (Ub 1)

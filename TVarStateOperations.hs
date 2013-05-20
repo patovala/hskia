@@ -10,13 +10,13 @@
 
 module TVarStateOperations(VarState(..),VarStates(..),
  getVarTop, getUnionPredIntervals, convertVartoVal, replaceVarVal, 
- evalCondition, intersecVarState,entryState, getVarBottom,)
+ evalCondition, intersecVarState,entryState, getVarBottom,getVarNoReachState)
 
 where
 import Data.List
 --import Syntax (Exp(..),Opkind(..),Stmt(..))
 import TCFlow(CFGNode(..),PredCFGNode)
-import TInterval(Interval(..),Lb(..),Ub(..), intersec)
+import TInterval(Interval(..),Lb(..),Ub(..), intersec, AbsValue(..))
 import qualified TInterval(union)
 import TEvalInterval(InterExp(..),transformExp, evalInterExp)
 import Syntax (Exp(..),Opkind(..),Stmt(..))
@@ -25,7 +25,7 @@ import Syntax (Exp(..),Opkind(..),Stmt(..))
 type VarName = String
 --Represent the state of the variable in 
 --a node
-type VarState = [(VarName, Interval)]
+type VarState = [(VarName, AbsValue)]
 --Set with the variable value in each node
 type VarStates = [VarState]
 
@@ -35,7 +35,7 @@ type VarStates = [VarState]
 --all variables with bottom value   
 entryState :: Int -> VarState->VarStates
 entryState 0 state = []    
-entryState n state = state:(entryState (n-1) state)      
+entryState n state = state:(entryState (n-1) state)     
 
 -- This function return
 -- the varState bottom having the tip
@@ -44,7 +44,7 @@ entryState n state = state:(entryState (n-1) state)
 getVarBottom :: [PredCFGNode] -> VarState
 getVarBottom [] = []
 getVarBottom (((AsgNode var exp),_):nodes) 
-   = ((var,Empty):(getVarBottom nodes)) 
+   = ((var,AInterval(Empty)):(getVarBottom nodes)) 
 getVarBottom (n:nodes)
    = getVarBottom nodes
 
@@ -53,7 +53,7 @@ getVarBottom (n:nodes)
 -- receiving a VarState
 toEmpty [] = []
 toEmpty ((var,inter):vars)
-   = ((var,Empty):(toEmpty vars))
+   = ((var,AInterval(Empty)):(toEmpty vars))
 
 -- This function return
 -- the varState Top [-oo,oo] having the tip
@@ -62,7 +62,7 @@ toEmpty ((var,inter):vars)
 getVarTop :: [PredCFGNode] -> VarState
 getVarTop [] = []
 getVarTop (((AsgNode var exp),_):nodes) 
-   = ((var,(Interval MinInf PlusInf)):(getVarTop nodes)) 
+   = ((var,AInterval(Interval MinInf PlusInf)):(getVarTop nodes)) 
 getVarTop (n:nodes)
    = getVarTop nodes
 -------------------------------------------------------------------------------
@@ -118,7 +118,7 @@ intersecVarState ((var1,inter1):vars1)((var2,inter2):vars2)
 unionVarState::VarState->VarState->VarState
 unionVarState [] [] = []
 unionVarState ((var1,inter1):vars1)((var2,inter2):vars2)
-   = (var1,(TInterval.union inter1 inter2)):(unionVarState vars1 vars2)
+   = (var1,TInterval.union inter1 inter2):(unionVarState vars1 vars2)
     
 --Function that update the state of a variable in a program point
 replaceVarState::VarStates->Int->VarState->VarStates
@@ -131,14 +131,21 @@ replaceVarState (s1:states) i s2
 replaceVarVal::VarState->String->Interval->VarState
 replaceVarVal [] var i 
    = [] 
-replaceVarVal ((x,i1):state) y i2 
-   | x == y = (x,i2):state
-   | otherwise = (x,i1):(replaceVarVal state y i2)	
+replaceVarVal ((x,NoReach):state) y i2 
+   | x == y = (x,(AInterval i2)):state
+   | otherwise = (x,(AInterval Empty)):(replaceVarVal state y i2)	
+
+replaceVarVal ((x,(AInterval i1)):state) y i2 
+   | x == y = (x,(AInterval i2)):state
+   | otherwise = (x,(AInterval i1)):(replaceVarVal state y i2)	
 
 --Function that return the value of a variable
 getVarVal::VarState->String->Interval 
 getVarVal [] _ = Empty
-getVarVal ((x,i1):state) y  
+getVarVal (( x,NoReach):state) y  
+   | x == y = Empty
+   | otherwise = getVarVal state y 	
+getVarVal (( x,(AInterval i1)):state) y  
    | x == y = i1
    | otherwise = getVarVal state y 	
    
@@ -270,4 +277,9 @@ addReachables (Interval  MinInf  PlusInf) reachable yes no
 getVarTopState::VarState->VarState
 getVarTopState [] = []
 getVarTopState ((s, i):states) = 
-   (s,(Interval MinInf PlusInf)):(getVarTopState states)
+   (s,AInterval(Interval MinInf PlusInf)):(getVarTopState states)
+
+getVarNoReachState::VarState->VarState
+getVarNoReachState [] = []
+getVarNoReachState ((s, i):states) = 
+   (s,NoReach):(getVarNoReachState states)
