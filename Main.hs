@@ -116,7 +116,6 @@ doOptimize fp
 --[int] with the landmarks set 
 iterations::[PredCFGNode]->VarStates->Int->[Int]->VarStates
 iterations nodes x 0 lmarks	
-<<<<<<< HEAD
    = let initialIteration = iteration nodes 0 lmarks [] [] 
                             (entryState (length nodes) 
                             (nub(getVarBottom nodes))) []
@@ -125,15 +124,6 @@ iterations nodes x 0 lmarks
         -- fourIteration = iteration nodes 0 lmarks [] [] thirdIteration  []
      in  initialIteration
          -- iterations nodes secondIteration 1 lmarks 
-=======
-   = let initialIteration = iteration nodes 0 lmarks [] [] (entryState (length nodes) (nub(getVarBottom nodes))) []
-         -- secondIteration = iteration nodes 0 lmarks [] [] initialIteration []
-        -- thirdIteration = iteration nodes 0 lmarks [] [] secondIteration []
-        -- fourIteration = iteration nodes 0 lmarks [] [] thirdIteration  []
-     in  --fourIteration
-         --secondIteration
-         iterations nodes initialIteration 1 lmarks 
->>>>>>> optbranch
 
 iterations nodes stateIn i lmarks
    |i == 3 = 
@@ -338,18 +328,11 @@ removeBigger y (x:xs)
 showintanalysis :: [(CFGNode, [Pos])] -> [VarState] -> Pos -> Int -> IO()
 showintanalysis [] _ n _ = do putStr "" 
 showintanalysis ((node, _):xs) (y:ys) n w = do 
-<<<<<<< HEAD
-            let pnode = pretyshow node
-            let lnode = length pnode
-            putStrLn $ 
-              (show n) ++ (filler w) ++ "  | " ++ show n ++ ": "++ (showvars y)
-=======
             let pnode = show n ++ ":" ++ pretyshow node
             let lnode = length (pnode) 
             let vnode = show n 
             let lvnode = w - length vnode + 1
             putStrLn $ (show n) ++ (filler lvnode) ++ "  | " ++ show n ++ ": "++ (showvars y)
->>>>>>> optbranch
             putStrLn $ "   " ++ pnode ++ filler (w - lnode) ++ "|    " ++ pnode
             showintanalysis xs ys (n+1) w
 
