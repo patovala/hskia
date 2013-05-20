@@ -68,6 +68,9 @@ instance Ord Interval where
         | a <= c && b <= d = LT
         | a > c && b > d = GT
         | otherwise = EQ
+    compare Empty Empty = EQ
+    compare Empty _ = LT
+    compare _ Empty = GT
 
 instance Num Lb where
     (+) MinInf MinInf = MinInf 
@@ -111,6 +114,13 @@ instance Num Interval where
     (Interval a  b) + (Interval c d) = Interval (a + c) (b + d)
     (Interval (Lb a) (Ub b)) - (Interval (Lb c) (Ub d)) =
      Interval (Lb(a - d)) (Ub (b - c))
+    (Interval (Lb a) (Ub b)) - (Interval (Lb c) (Ub d)) = Interval (Lb(a - d)) (Ub (b - c))
+    (Interval MinInf (Ub b)) - (Interval (Lb c) _) = Interval (MinInf) (Ub (b - c))
+    (Interval (Lb a) PlusInf) - (Interval _ (Ub d)) = Interval (Lb(a - d)) (PlusInf)
+    (Interval (Lb a) (Ub b)) - (Interval MinInf (Ub d)) = Interval (MinInf) (PlusInf)
+    (Interval (Lb a) (Ub b)) - (Interval (Lb c) PlusInf) = Interval (MinInf) (PlusInf)
+    (Interval MinInf PlusInf) - (Interval _ _) = Interval (MinInf) (PlusInf)
+    (Interval _ _) - (Interval MinInf PlusInf) = Interval (MinInf) (PlusInf)
     Empty - _ = Empty 
     _ - Empty = Empty 
     (Interval (Lb a)  (Ub b)) * (Interval (Lb c) (Ub d)) = 
@@ -130,13 +140,11 @@ instance Fractional Interval where
     (/) Empty x = Empty
     (/) x Empty = Empty
 
-
     (Interval (Lb a)  (Ub b)) / (Interval (Lb 0) (Ub _)) = Empty
     (Interval (Lb a)  (Ub b)) / (Interval (Lb _) (Ub 0)) = Empty
     (Interval (Lb a)  (Ub b)) / (Interval (Lb c) (Ub d)) = 
-       Interval 
-       (Lb (minimum [(a `div` c),(a `div` d),(b `div` c),(b `div` d)]))
-       (Ub (maximum [(a `div` c),(a `div` d),(b `div` c),(b `div` d)]))
+                    Interval (Lb (minimum [(a `div` c),(a `div` d),(b `div` c),(b `div` d)]))
+                             (Ub (maximum [(a `div` c),(a `div` d),(b `div` c),(b `div` d)]))
     (Interval MinInf  _) / (Interval _ _) = Interval (MinInf) (PlusInf)
     (Interval _  PlusInf) / (Interval _ _) = Interval (MinInf) (PlusInf)
     (Interval _  _) / (Interval MinInf _) = Interval (MinInf) (PlusInf)
@@ -249,8 +257,7 @@ ivs = [(x,y)| x<-ivs', y<-ivs']
     where ivs' = (map (\(x,y) -> Interval x y) (zip a b)) ++ [ Empty ]
 
 -- Interval Tester, given an interval operations
-interTest::[(Interval, Interval)]->(Interval -> 
-            Interval -> Interval)->[(Interval, Interval, Interval)]
+interTest::[(Interval, Interval)]->(Interval -> Interval -> Interval)->[(Interval, Interval, Interval)]
 interTest [] _ = []
 interTest ((a,b):xs) f = (a, b, c) : interTest xs f
         where c = (f a b)

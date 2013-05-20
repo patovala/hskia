@@ -1,6 +1,6 @@
 i=0;
 j=0;
-while (10 > i){
+while (100 > i){
 i = i+1;
 if (input){
 j=2*i;
