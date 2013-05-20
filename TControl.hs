@@ -1,7 +1,8 @@
-module TControl (getconst, getconst', getctrpoints, showctrpoints, putids, Pos)
+module TControl (getconst, getconst', getctrpoints, showctrpoints, 
+                putids, Pos, SCFGNode, spprint2, spprint)
 where
 
-import TCFlow(evalwrpr, eval, CFGNode(..), pprint)
+import TCFlow(evalwrpr, eval, CFGNode(..), pprint, pretyshow)
 import TParse (tParse)
 import Syntax (Exp(..))
 
@@ -107,4 +108,37 @@ filtercons x = []
 -- This is a wrapper for avoid using a more elegant and elaborated SCFGNode
 getconst' cfgnodes = getconst (putids cfgnodes 0)
 
+--
+-- Print the SCFNode 
+--
+spprint :: [SCFGNode] -> IO()
+spprint [] = do putStrLn "" 
+spprint ((n, x):xs) = do 
+            putStrLn $ show n ++ ":" ++ pretyshow x 
+            spprint xs 
+
+--let maxcolsize = maximum [length(pretyshow x) | (_, x) <- sproductions]
+--
+-- Print the SCFNode for Optimization option
+--
+spprint2 prevs nexts = sopprint prevs nexts max
+        where max = maximum [length(pretyshow x) | (_, x) <- prevs] 
+
+sopprint :: [SCFGNode] -> [SCFGNode] -> Int -> IO()
+sopprint [] [] max         = do putStr "" 
+sopprint [] (y:ys) max     = do putStrLn $ (filler max) ++ "|" ++ (printelem y max)
+                                sopprint [] ys max 
+sopprint (x:xs) [] max     = do putStrLn $ (printelem x max) ++ "|" ++ filler max
+                                sopprint xs [] max 
+sopprint (x:xs) (y:ys) max = do 
+                putStrLn $ (printelem x max) ++ "|" ++ (printelem y max) 
+                sopprint xs ys max 
+
+printelem :: SCFGNode -> Int -> String
+printelem (n, x) max = pnode ++ filler len
+        where
+            pnode = show n ++ ":" ++ pretyshow x
+            len = max - length (pnode)
+
+filler n = replicate (n+8) ' '
 
