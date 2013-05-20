@@ -76,6 +76,7 @@ import TVarStateOperations(entryState, getVarBottom, VarState(..),VarStates(..),
 import TControl(SCFGNode(..))
 import TCFlow(CFGNode(..))
 import TInterval(Interval(..))
+import Data.List(intersect)
 
 
 -- TODO: this imports must be analyzed before integration
@@ -84,7 +85,7 @@ import TInterval(Interval(..))
 -- without the dead code in terms of non reacheability
 removedead :: [SCFGNode] -> VarStates -> [SCFGNode]
 --removedead nodes = renumerate . filtergotos . filterdead . filterbottom nodes 
-removedead nodes = filterbottom nodes 
+removedead nodes = renumerate . filtergotos . filterdead . filterbottom nodes 
 
 -- filter the bottom vars 
 filterbottom :: [SCFGNode] -> VarStates -> [SCFGNode]
@@ -102,16 +103,19 @@ isbottom ((x, _):xs) = False && isbottom xs
 -- filter all dead gotos (ifs)  pointing to a non existent node
 -- filter also gotos pointing to consecutives nodes
 filterdead :: [SCFGNode] -> [SCFGNode]
-filterdead testnodes = filter istherefunc testnodes 
-    where istherefunc (_, IfGotoNode _ w) = elem w nodelist 
+filterdead testnodes = if (testnodes == testnodes2) then testnodes
+                       else filterdead testnodes2 
+    where testnodes2 = filter istherefunc testnodes 
+          istherefunc (_, IfGotoNode _ w) = elem w nodelist 
+          istherefunc (_, GotoNode w) = elem w nodelist 
           istherefunc _ = True 
           nodelist = [n | (n, _) <- testnodes]
 
--- filter consecutive gotos nodes
+-- filter consecutive gotos nodes (experimental)
 filtergotos :: [SCFGNode] -> [SCFGNode]
 filtergotos [] = []
 filtergotos (x@(_, GotoNode n):(m, _):xs) 
-    | n == m = (filtergotos xs)
+    | n == m  = (filtergotos xs)
 filtergotos (x:xs) = x : (filtergotos xs)
 
 -- PV
@@ -128,10 +132,23 @@ renumerate nodes = zip [0..] (map fixgotofunc cfgnodes)
           matches m = filter (\(k, v) -> m == k) $ nodepairs
           -- findnode m = m 
 
-
 -- Se pierden las referencias así que hay que manejar caso por caso y reestructurar
 -- todo, justo despues de que ha eliminado algún nodo, se debe correr un verificador
 -- que nos diga cuando un nodo ha desaparecido y ya no es alcanzable, se debe 
 -- eliminar toda esa rama, y volver nuevamente a rodar el comprobador de sentido
 -- el comprobador de sentido recursivo me dice hasta cuando se debe volver a 
 -- intentar conseguir semántica en el programa
+
+-- assert that all the gotos have nodes or keep filtering 
+assert :: [SCFGNode] -> [SCFGNode]
+assert nodes 
+    | (intersect nodelist gotonodelist ) == gotonodelist = nodes
+    | otherwise = assert $ filterdead nodes
+    where
+        nodelist = map fst nodes
+        gotonodelist = onlygotofunc nodes 
+        onlygotofunc ((_, GotoNode i):xs) = i : onlygotofunc xs 
+        onlygotofunc ((_, IfGotoNode _ i):xs) = i : onlygotofunc xs
+        onlygotofunc (_:xs) = onlygotofunc xs
+        onlygotofunc [] = [] 
+

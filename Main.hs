@@ -30,10 +30,11 @@ import TOptimizer(removedead)
 help :: String -> IO ()
 help tipprog 
   = do
-    putStrLn ("Usage: " ++ tipprog ++ " [-t -p -a] filename\n")
+    putStrLn ("Usage: " ++ tipprog ++ " [-a -p -i -o] filename\n")
     putStrLn ("      -a: get the production list from file\n ")
     putStrLn ("      -p: get the predecesors list from file\n ")
     putStrLn ("      -i: start the interval\n ")
+    putStrLn ("      -o: optimize code\n")
 
 main :: IO ()
 main 
@@ -52,6 +53,7 @@ processArgs tipprog [option, inputFile]
             "-a" -> flowFile inputFile 
             "-p" -> doFilePred inputFile 
             "-i" -> doInterval inputFile 
+            "-o" -> doOptimize inputFile 
             _ -> help tipprog
 
 processArgs tipprog _
@@ -73,7 +75,8 @@ doInterval fp
       let productions = eval (tParse tipProgram) 1  -- 1 cause entry 
       let productions' = evalwrpr productions       -- Node has not 
       let sproductions = putids productions' 0
-      let maxcolsize = maximum [length(pretyshow x) | (_, x) <- sproductions]
+      let maxcolsize = maximum [length(show n ++ pretyshow x) | 
+                                (n, x) <- sproductions] + 8
       let controlpoints = getctrpoints sproductions sproductions
       let const = getconst sproductions
       let vars = [] : iterations controlpoints [] 0 const
@@ -328,9 +331,11 @@ removeBigger y (x:xs)
 showintanalysis :: [(CFGNode, [Pos])] -> [VarState] -> Pos -> Int -> IO()
 showintanalysis [] _ n _ = do putStr "" 
 showintanalysis ((node, _):xs) (y:ys) n w = do 
-            let pnode = pretyshow node
-            let lnode = length pnode
-            putStrLn $ (show n) ++ (filler w) ++ "  | " ++ show n ++ ": "++ (showvars y)
+            let pnode = show n ++ ":" ++ pretyshow node
+            let lnode = length (pnode) 
+            let vnode = show n 
+            let lvnode = w - length vnode + 1
+            putStrLn $ (show n) ++ (filler lvnode) ++ "  | " ++ show n ++ ": "++ (showvars y)
             putStrLn $ "   " ++ pnode ++ filler (w - lnode) ++ "|    " ++ pnode
             showintanalysis xs ys (n+1) w
 
