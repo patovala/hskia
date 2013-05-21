@@ -81,7 +81,7 @@ doInterval fp
                                 (n, x) <- sproductions] + 8
       let controlpoints = getctrpoints sproductions sproductions
       let const = getconst sproductions
-      let vars = [] : iterations controlpoints [] 0 0 const
+      let vars =  iterations controlpoints [] 0 0 const
       showintanalysis controlpoints vars 0 maxcolsize
 
 doOptimize :: FilePath -> IO()

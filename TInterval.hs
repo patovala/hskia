@@ -187,7 +187,7 @@ intersec (AInterval(Interval lb1 ub1)) (AInterval (Interval lb2 ub2))
 -- both ub with oo
 intersec (AInterval (Interval lb1 ub1)) (AInterval (Interval lb2 ub2))
     | ub1 == PlusInf && ub2 == PlusInf = (AInterval (Interval lb PlusInf))
-                where lb = if (lb1 >= lb2) then lb2 else lb1
+                where lb = if (lb1 >= lb2) then lb1 else lb2
 -- lb1 == -oo and ub2 == oo ub1 can't be oo since it was previously catched
 intersec (AInterval(Interval lb1 ub1)) (AInterval(Interval lb2 ub2))
     | lb1 == MinInf && ub2 == PlusInf = (AInterval r)
@@ -196,7 +196,7 @@ intersec (AInterval(Interval lb1 ub1)) (AInterval(Interval lb2 ub2))
               r = case (compare x y) of
                         EQ -> Empty
                         GT -> Empty 
-                        LT -> (Interval (Lb y) (Ub x))
+                        LT -> (Interval (Lb (min x y)) (Ub (max x y)))
 
 -- ub1 == oo and lb2 == -oo ub2 can't be oo since it was previously catched
 intersec (AInterval(Interval lb1 ub1)) (AInterval(Interval lb2 ub2))

@@ -1,44 +1,78 @@
 module Division
 where
-import TInterval(Interval(..),Lb(..),Ub(..),union,intersec)
+import TInterval(Interval(..),Lb(..),Ub(..),union,intersec, AbsValue(..))
 
-divi::Interval->Interval->Interval
-divi (Interval (Lb a) (Ub b)) (Interval (Lb c) (Ub d)) =	
-      Interval (Lb (minimum [(a `div` c),(a `div` d),(b `div` c),(b `div` d)]))
-       (Ub (maximum [(a `div` c),(a `div` d),(b `div` c),(b `div` d)]))
-divi Empty Empty = Empty    
-divi Empty x = Empty
-divi x Empty = Empty
+data SInt = SMinInf | SInt Int | SPlusInf 
+    deriving (Show)
     
+divcross :: Interval -> Interval -> Interval
+divcross (Interval a b) (Interval c d) = Interval (tolb x) (toub y)
+    where 
+        (a', b',c',d') = (translb a, transub b, translb c, transub d)
+        x = divSint a' d'
+        y = divSint b' c'
+        tolb SMinInf = MinInf 
+        tolb (SInt n) = Lb n 
+        tolb nn = error $ "error lb:" ++ show y
+        toub SPlusInf = PlusInf 
+        toub (SInt n) = Ub n 
+        toub nn = error $ "error ub:" ++ show b'++"  " ++ show b 
+        
+
+divSint :: SInt -> SInt -> SInt
+divSint SMinInf (SInt y) = SMinInf 
+divSint (SInt x) SMinInf  = SInt 0 
+-- Int
+divSint (SInt x) (SInt y) 
+            | (x*y) >= 0 = SInt (x `div` y) 
+            | otherwise = SInt (x `quot` y) 
+divSint (SInt x) SPlusInf = SInt 0
+divSint SPlusInf (SInt y) = SPlusInf 
+divSint _ _ = error "not allowed this divSint"
+
+translb::Lb -> SInt 
+translb (Lb x) = SInt x
+translb _ = SMinInf
+
+transub::Ub -> SInt 
+transub (Ub x) = SInt x
+transub _ = SPlusInf
+
+
 -- Interval
 divInter::Interval->Interval-> (Interval,Interval,Interval,Interval,Interval)
-divInter (Interval (Lb a) (Ub b)) (Interval (Lb c) (Ub d)) =
-    let a1b1 = intersec (Interval (Lb a) (Ub b)) (Interval MinInf (Ub (-1)))
-        a2b2 = intersec (Interval (Lb a) (Ub b)) (Interval (Lb 1) PlusInf)
-        c1d1 = intersec (Interval (Lb c) (Ub d)) (Interval MinInf (Ub (-1)))
-        c2d2 = intersec (Interval (Lb c) (Ub d)) (Interval (Lb 1) PlusInf)
-        i1 = divi a1b1 c1d1
-        i2 = divi a1b1 c2d2
-        i3 = divi a2b2 c1d1
-        i4 = divi a2b2 c2d2
+divInter ab cd =
+    let (AInterval a1b1) = intersec (AInterval ab) 
+                                    (AInterval (Interval MinInf (Ub (0))))
+        (AInterval a2b2) = intersec (AInterval ab) 
+                                    (AInterval (Interval (Lb 0) PlusInf))
+        (AInterval c1d1) = intersec (AInterval cd) 
+                                    (AInterval (Interval MinInf (Ub (-1))))
+        (AInterval c2d2) = intersec (AInterval cd) 
+                                    (AInterval (Interval (Lb 1) PlusInf))
+        i1 = divcross a1b1 c1d1 
+        -- eg: [-oo, -3] -> [3,oo]
+        i2 = tonegative $ divcross (topositive a1b1) c2d2
+        i3 = tonegative $ divcross a2b2 (topositive c1d1) 
+        i4 = divcross a2b2 c2d2
         
-        u1 = union i1 i2
-        u2 = union u1 i3
-        u3 = union u2 i4
+        (AInterval u1) = union (AInterval i1) (AInterval i2)
+        (AInterval u2) = union (AInterval u1) (AInterval i3)
+        (AInterval u3) = union (AInterval u2) (AInterval i4)
      in (i1,i2,i3,i4,u3)
 
-{--	(Interval MinInf  _) / (Interval _ _) = Interval (MinInf) (PlusInf)
-    (Interval _  PlusInf) / (Interval _ _) = Interval (MinInf) (PlusInf)
-    (Interval _  _) / (Interval MinInf _) = Interval (MinInf) (PlusInf)
-    (Interval _  _) / (Interval _ PlusInf) = Interval (MinInf) (PlusInf)
-    fromRational = undefined
-	
-    (Interval (Lb a)  (Ub b)) / (Interval (Lb 0) (Ub _)) = Empty
-    (Interval (Lb a)  (Ub b)) / (Interval (Lb _) (Ub 0)) = Empty
-    (Interval (Lb a)  (Ub b)) / (Interval (Lb c) (Ub d)) = 
-       Interval 
+-- transform an interval from negative to positive
+-- the (-) sign is implicit for now 
+topositive :: Interval -> Interval
+topositive (Interval MinInf (Ub b)) = Interval (Lb b) PlusInf 
+topositive (Interval (Lb a) (Ub b)) = Interval (Lb b) (Ub a) 
 
+-- transform an interval from negative to positive
+-- the (-) sign is implicit for now 
+tonegative :: Interval -> Interval
+tonegative (Interval (Lb a) PlusInf) = Interval MinInf (Ub a) 
+tonegative (Interval (Lb a) (Ub b)) = Interval (Lb b) (Ub a) 
 
-	(/) Empty Empty = Empty    
-    (/) Empty x = Empty
-    (/) x Empty = Empty--}
+-- test cases: TODO DELETE
+a = Interval MinInf (Ub 5)
+b = Interval (Lb (-5)) PlusInf 
