@@ -280,6 +280,19 @@ getVarTopState ((s, i):states) =
    (s,AInterval(Interval MinInf PlusInf)):(getVarTopState states)
 
 getVarNoReachState::VarState->VarState
-getVarNoReachState [] = []
-getVarNoReachState ((s, i):states) = 
-   (s,NoReach):(getVarNoReachState states)
+getVarNoReachState (states) =
+   let  f1 = \(v1,i1) -> i1 == AInterval(Empty)
+        f2 = \(v2,i2) -> (v2,NoReach)
+        list = map f2 states
+   in
+        if (filter f1 states) == states then   
+            list
+        else
+            states
+
+{--initMap :: [DFNode] -> [(DFNode, [Mapping], [Mapping])]
+initMap [] = []
+initMap nodes = initMap' nodes varsBot
+    where varsBot = sortMapping (map f allVars)   -- Map all vars to bot
+          allVars = getVars nodes                 -- Get all vars
+          f = \s -> s = NoReach --}

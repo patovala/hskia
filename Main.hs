@@ -17,7 +17,7 @@ import TCFlow(flowFile, evalwrpr, eval, CFGNode(..), PredCFGNode(..),
 import TParse (tParse, pretty, parseFile)
 import TControl (showctrpoints, getctrpoints, putids, Pos, getconst
                 ,spprint , spprint2)
-import TInterval(Interval(..),Lb(..),Ub(..), AbsValue(..))
+import TInterval(Interval(..),Lb(..),Ub(..), AbsValue(..),intersec)
 import System.Environment (getProgName, getArgs)
 import TEvalInterval (InterExp(..),transformExp, evalInterExp)
 import Data.List
@@ -157,14 +157,14 @@ iteration::[PredCFGNode]->Int->[Int]->VarState->VarState->
 iteration [] _ _ _ _ _ stateIn = stateIn
 iteration ((EntryNode,_):nodes) current _ _ _ stateOld stateIn
    =  iteration nodes  (current+1) ((current+1):[]) 
-                       --[] [] stateOld [nub(getVarTop nodes)]
-                      [] [] stateOld [nub(getVarBottom nodes)]
+                        --[] [] stateOld [nub(getVarTop nodes)]
+                        [] [] stateOld [nub(getVarBottom nodes)]
 iteration (((AsgNode var exp),n):nodes) current reachable intersect 
           union stateOld stateIn
    | elem current reachable
       = let 
            pastState1 = getUnionPredIntervals n stateOld stateIn 
-           pastState = changeNoReach pastState1
+           pastState = map changeNoReach pastState1
            inter1 =  transformExp exp 
            inter2 =  convertVartoVal inter1 pastState
            inter3 =  evalInterExp inter2
@@ -182,7 +182,7 @@ iteration (((IfGotoNode exp next),n):nodes)  current reachable
     | elem current reachable
       = let 
            pastState1 = getUnionPredIntervals n stateOld stateIn 
-           pastState = changeNoReach pastState1
+           pastState = map changeNoReach pastState1
            eval = evalCondition exp pastState next (current+1) reachable
            trueIntersec = fst(fst eval)
            falseIntersec = snd(fst eval)
@@ -204,7 +204,7 @@ iteration (((GotoNode next),n):nodes) current reachable intersect
       = let
         pastState1 = getPastState union 
                      (getUnionPredIntervals n stateOld stateIn) 
-        pastState = changeNoReach pastState1
+        pastState = map changeNoReach pastState1
         newState = intersecVarState pastState intersect 
         in iteration nodes (current+1) (next:reachable) 
            [] [] stateOld (stateIn ++ [newState])
@@ -219,7 +219,7 @@ iteration (((OutputNode exp),n):nodes)  current reachable
     | elem current reachable
       = let
            state1 = getUnionPredIntervals n stateOld stateIn
-           state = changeNoReach state1
+           state = map changeNoReach state1
         in  iteration nodes (current+1) ((current+1):reachable) [] [] 
             stateOld (stateIn ++ [state])
     | otherwise
@@ -232,7 +232,7 @@ iteration (((ExitNode),n):nodes)  current reachable intersect
     | elem current reachable
         = let
              pastState1 = getUnionPredIntervals n stateOld stateIn
-             pastState = changeNoReach pastState1
+             pastState = map changeNoReach pastState1
           in (stateIn ++ [pastState])
     | otherwise
        = let         
@@ -248,12 +248,9 @@ changeBottom ((var1,AInterval Empty):vars1)((var2,inter2):vars2)
 changeBottom ((var1,AInterval inter1):vars1)((var2,AInterval inter2):vars2)
    = (var1,AInterval(inter1)):(changeBottom vars1 vars2)
 
-changeNoReach::VarState->VarState
-changeNoReach [] = []
-changeNoReach ((var1,NoReach):vars1)
-   = (var1,(AInterval Empty)):(changeNoReach vars1)
-changeNoReach (s:vars1)
-   = s:(changeNoReach vars1)
+changeNoReach::(String, AbsValue)->(String, AbsValue)
+changeNoReach (var,NoReach) =(var,AInterval Empty)
+changeNoReach (var,i) =(var,i)
 
 getPastState::VarState->VarState->VarState
 getPastState conditional predecessors=

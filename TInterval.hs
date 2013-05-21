@@ -10,7 +10,7 @@ import Data.List(sort)
 data AbsValue
    = NoReach 
    | AInterval {interval :: Interval}
-   deriving (Eq)
+   deriving (Show,Eq)
    
 -- Interval ej: [-1, 1] or [-oo, oo] or [1,oo]
 data Interval 
@@ -173,7 +173,7 @@ intersec x NoReach = NoReach
 
 
 intersec (AInterval (Interval (Lb a) (Ub b))) (AInterval (Interval (Lb c) (Ub d)))  
-    | b' >= c'   = (AInterval(Interval (Lb b') (Ub c')))
+    | b >= c   = (AInterval(Interval (Lb b') (Ub c')))
     | otherwise  = (AInterval Empty)
         where (_:b':c':_) = sort([a,b,c,d])
         

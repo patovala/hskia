@@ -29,6 +29,9 @@ data CFGNode
 --Data Type that agrupe a node and its predecessors
 type PredCFGNode = (CFGNode,[Int])
 
+--evalBack ::[CFGNode]->Int->[Stmt]
+--evalBack [] n = []
+--evalBack ((AsgNode var exp):xs) : evalBack xs (n + 1)
 
 -------------------------------------------------------------------------------
 -- PV Given an Expresion return the list of nodes
