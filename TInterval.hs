@@ -3,7 +3,7 @@
 --  Origin   : 06-May-2013
 --  Purpose  : Implementation of Interval Operations
 
-module TInterval (Interval(..),Lb(..),Ub(..), AbsValue(..), union, intersec)
+module TInterval (Interval(..),Lb(..),Ub(..), AbsValue(..), union, intersec, interTest, ivs)
 where
 import Data.List(sort)
 
@@ -20,12 +20,14 @@ data Interval
 -- Lower bound: -1,1,-oo
 data Lb =  MinInf | Lb {valueLb :: Int} 
     deriving (Ord)
- -- deriving (Show,Eq)
 
 -- Upper bound: -1,1,-oo
 data Ub = Ub {valueUb :: Int} | PlusInf
     deriving (Ord)
- -- deriving (Show,Eq)
+
+-- Define a linear interval type to operate with
+data SInt = SMinInf | SInt Int | SPlusInf 
+    deriving (Show)
 
 instance Show Lb where
     show (Lb i) = show i
@@ -112,11 +114,16 @@ instance Num Interval where
     (+) _ Empty = Empty
     -- [a + c, b + d]
     (Interval a  b) + (Interval c d) = Interval (a + c) (b + d)
-    (Interval (Lb a) (Ub b)) - (Interval (Lb c) (Ub d)) = Interval (Lb(a - d)) (Ub (b - c))
-    (Interval MinInf (Ub b)) - (Interval (Lb c) _) = Interval (MinInf) (Ub (b - c))
-    (Interval (Lb a) PlusInf) - (Interval _ (Ub d)) = Interval (Lb(a - d)) (PlusInf)
-    (Interval (Lb a) (Ub b)) - (Interval MinInf (Ub d)) = Interval (MinInf) (PlusInf)
-    (Interval (Lb a) (Ub b)) - (Interval (Lb c) PlusInf) = Interval (MinInf) (PlusInf)
+    (Interval (Lb a) (Ub b)) - (Interval (Lb c) (Ub d)) 
+            = Interval (Lb(a - d)) (Ub (b - c))
+    (Interval MinInf (Ub b)) - (Interval (Lb c) _) 
+            = Interval (MinInf) (Ub (b - c))
+    (Interval (Lb a) PlusInf) - (Interval _ (Ub d)) 
+            = Interval (Lb(a - d)) (PlusInf)
+    (Interval (Lb a) (Ub b)) - (Interval MinInf (Ub d)) 
+            = Interval (MinInf) (PlusInf)
+    (Interval (Lb a) (Ub b)) - (Interval (Lb c) PlusInf) 
+            = Interval (MinInf) (PlusInf)
     (Interval MinInf PlusInf) - (Interval _ _) = Interval (MinInf) (PlusInf)
     (Interval _ _) - (Interval MinInf PlusInf) = Interval (MinInf) (PlusInf)
     Empty - _ = Empty 
@@ -134,20 +141,90 @@ instance Num Interval where
     fromInteger _ = undefined
 
 instance Fractional Interval where
+    fromRational = undefined
     (/) Empty Empty = Empty    
     (/) Empty x = Empty
     (/) x Empty = Empty
 
     (Interval (Lb a)  (Ub b)) / (Interval (Lb 0) (Ub _)) = Empty
     (Interval (Lb a)  (Ub b)) / (Interval (Lb _) (Ub 0)) = Empty
-    (Interval (Lb a)  (Ub b)) / (Interval (Lb c) (Ub d)) = 
-                    Interval (Lb (minimum [(a `div` c),(a `div` d),(b `div` c),(b `div` d)]))
-                             (Ub (maximum [(a `div` c),(a `div` d),(b `div` c),(b `div` d)]))
-    (Interval MinInf  _) / (Interval _ _) = Interval (MinInf) (PlusInf)
-    (Interval _  PlusInf) / (Interval _ _) = Interval (MinInf) (PlusInf)
-    (Interval _  _) / (Interval MinInf _) = Interval (MinInf) (PlusInf)
-    (Interval _  _) / (Interval _ PlusInf) = Interval (MinInf) (PlusInf)
-    fromRational = undefined
+    --(Interval (Lb a)  (Ub b)) / (Interval (Lb c) (Ub d)) = 
+    --     Interval (Lb (minimum [(a `div` c),(a `div` d),
+    --                                        (b `div` c),(b `div` d)]))
+    --              (Ub (maximum [(a `div` c),(a `div` d),
+    --                                        (b `div` c),(b `div` d)]))
+    --(Interval MinInf  _) / (Interval _ _) = Interval (MinInf) (PlusInf)
+    --(Interval _  PlusInf) / (Interval _ _) = Interval (MinInf) (PlusInf)
+    --(Interval _  _) / (Interval MinInf _) = Interval (MinInf) (PlusInf)
+    --(Interval _  _) / (Interval _ PlusInf) = Interval (MinInf) (PlusInf)
+    (/) ab cd = u
+        where 
+            (AInterval a1b1) = intersec (AInterval ab) 
+                                   (AInterval (Interval MinInf (Ub (0))))
+            (AInterval a2b2) = intersec (AInterval ab) 
+                                   (AInterval (Interval (Lb 0) PlusInf))
+            (AInterval c1d1) = intersec (AInterval cd) 
+                                   (AInterval (Interval MinInf (Ub (-1))))
+            (AInterval c2d2) = intersec (AInterval cd) 
+                                   (AInterval (Interval (Lb 1) PlusInf))
+            i1 = divcross a1b1 c1d1 
+            -- eg: [-oo, -3] -> [3,oo]
+            i2 = tonegative $ divcross (topositive a1b1) c2d2
+            i3 = tonegative $ divcross a2b2 (topositive c1d1) 
+            i4 = divcross a2b2 c2d2
+            (AInterval u) = foldr (union . AInterval) (AInterval i1) [i2,i3,i4] 
+
+
+-- transform an interval from negative to positive
+-- the (-) sign is implicit for now 
+topositive :: Interval -> Interval
+topositive (Interval MinInf (Ub b)) = Interval (Lb b) PlusInf 
+topositive (Interval (Lb a) (Ub b)) = Interval (Lb b) (Ub a) 
+topositive Empty = Empty 
+
+-- transform an interval from negative to positive
+-- the (-) sign is implicit for now 
+tonegative :: Interval -> Interval
+tonegative (Interval (Lb a) PlusInf) = Interval MinInf (Ub a) 
+tonegative (Interval (Lb a) (Ub b)) = Interval (Lb b) (Ub a) 
+tonegative Empty = Empty 
+
+-- operates semi intervals for division
+divcross :: Interval -> Interval -> Interval
+divcross (Interval a b) (Interval c d) = Interval (tolb x) (toub y)
+    where 
+        (a', b',c',d') = (translb a, transub b, translb c, transub d)
+        x = divSint a' d'
+        y = divSint b' c'
+        tolb SMinInf = MinInf 
+        tolb (SInt n) = Lb n 
+        tolb nn = error $ "error lb:" ++ show y
+        toub SPlusInf = PlusInf 
+        toub (SInt n) = Ub n 
+        toub nn = error $ "error ub:" ++ show b'++"  " ++ show b 
+divcross _ _ = Empty 
+--divcross m n = error $ "what is this: " ++ show m ++" " ++ show n
+
+-- Transform from interval to serialized intervals
+translb::Lb -> SInt 
+translb (Lb x) = SInt x
+translb _ = SMinInf
+
+transub::Ub -> SInt 
+transub (Ub x) = SInt x
+transub _ = SPlusInf
+
+-- Operate (divide) serialized intervals
+divSint :: SInt -> SInt -> SInt
+divSint SMinInf (SInt y) = SMinInf 
+divSint (SInt x) SMinInf  = SInt 0 
+-- Int
+divSint (SInt x) (SInt y) 
+            | (x*y) >= 0 = SInt (ceiling $ ((toRational x) / (toRational y)))
+            | otherwise = SInt (x `div` y) 
+divSint (SInt x) SPlusInf = SInt 0
+divSint SPlusInf (SInt y) = SPlusInf 
+divSint _ _ = error "this operation is undefined divSint"
 
 -- PV this define the union of two intervals
 union :: AbsValue -> AbsValue -> AbsValue
@@ -171,8 +248,8 @@ intersec NoReach NoReach = NoReach
 intersec NoReach x = NoReach
 intersec x NoReach = NoReach
 
-
-intersec (AInterval (Interval (Lb a) (Ub b))) (AInterval (Interval (Lb c) (Ub d)))  
+intersec (AInterval (Interval (Lb a) (Ub b))) 
+         (AInterval (Interval (Lb c) (Ub d)))  
     | b >= c   = (AInterval(Interval (Lb b') (Ub c')))
     | otherwise  = (AInterval Empty)
         where (_:b':c':_) = sort([a,b,c,d])
@@ -208,7 +285,8 @@ intersec (AInterval(Interval lb1 ub1)) (AInterval(Interval lb2 ub2))
                         GT -> Empty
                         LT -> Interval (Lb x) (Ub y)
 -- [-oo,a] [b,c]
-intersec (AInterval (Interval MinInf ub1)) (AInterval (Interval lb2 ub2)) = (AInterval r)
+intersec (AInterval (Interval MinInf ub1)) (AInterval (Interval lb2 ub2)) 
+    = (AInterval r)
         where
             (Ub x) = ub1
             (Lb y) = lb2
@@ -218,7 +296,8 @@ intersec (AInterval (Interval MinInf ub1)) (AInterval (Interval lb2 ub2)) = (AIn
             r = if (x<y && x<z) then Empty else (Interval (Lb x') (Ub y'))
             (x':y':z':[]) = sort (x:y:z:[])
 -- [a,oo] [b,c]
-intersec (AInterval(Interval lb1 PlusInf)) (AInterval(Interval lb2 ub2)) = (AInterval r)
+intersec (AInterval(Interval lb1 PlusInf)) (AInterval(Interval lb2 ub2)) 
+    = (AInterval r)
         where
             (Lb x) = lb1
             (Lb y) = lb2
@@ -226,7 +305,8 @@ intersec (AInterval(Interval lb1 PlusInf)) (AInterval(Interval lb2 ub2)) = (AInt
             r = if (x>y && x>z) then Empty else (Interval (Lb y') (Ub z'))
             (x':y':z':[]) = Data.List.sort (x:y:z:[])
 -- [a,b] [-oo,c]
-intersec (AInterval(Interval lb1 ub1)) (AInterval(Interval MinInf ub2)) = (AInterval r)
+intersec (AInterval(Interval lb1 ub1)) (AInterval(Interval MinInf ub2)) 
+    = (AInterval r)
         where
             (Lb x) = lb1
             (Ub y) = ub1
@@ -234,18 +314,14 @@ intersec (AInterval(Interval lb1 ub1)) (AInterval(Interval MinInf ub2)) = (AInte
             r = if (z<x && z<y) then Empty else (Interval (Lb x') (Ub y'))
             (x':y':z':[]) = sort (x:y:z:[])
 -- [a,b] [c,oo]
-intersec (AInterval (Interval lb1 ub1)) (AInterval(Interval lb2 PlusInf)) = (AInterval r)
+intersec (AInterval (Interval lb1 ub1)) (AInterval(Interval lb2 PlusInf)) 
+    = (AInterval r)
         where
             (Lb x) = lb1
             (Ub y) = ub1
             (Lb z) = lb2
             r = if (z>x && z>y) then Empty else (Interval (Lb y') (Ub z'))
             (x':y':z':[]) = sort (x:y:z:[])
-
--- intersec a b = error ("interval error " ++ (show a) ++ (show b))
-
---
---intersec _ _ = Empty
 
 -- Test the interval behaviour
 a = [(MinInf),(Lb (-1)),(Lb 0),(Lb 2),(Lb 4)]
@@ -255,7 +331,8 @@ ivs = [(x,y)| x<-ivs', y<-ivs']
     where ivs' = (map (\(x,y) -> Interval x y) (zip a b)) ++ [ Empty ]
 
 -- Interval Tester, given an interval operations
-interTest::[(Interval, Interval)]->(Interval -> Interval -> Interval)->[(Interval, Interval, Interval)]
+interTest::[(Interval, Interval)]->(Interval -> Interval -> Interval)
+            ->[(Interval, Interval, Interval)]
 interTest [] _ = []
 interTest ((a,b):xs) f = (a, b, c) : interTest xs f
         where c = (f a b)

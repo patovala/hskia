@@ -1,7 +1,7 @@
 module Division
 where
 import TInterval(Interval(..),Lb(..),Ub(..),union,intersec, AbsValue(..))
-
+import TInterval(interTest, ivs)
 data SInt = SMinInf | SInt Int | SPlusInf 
     deriving (Show)
     
@@ -40,9 +40,10 @@ transub _ = SPlusInf
 
 
 -- Interval
-divInter::Interval->Interval-> (Interval,Interval,Interval,Interval,Interval)
-divInter ab cd =
-    let (AInterval a1b1) = intersec (AInterval ab) 
+divInter :: Interval -> Interval -> Interval
+divInter ab cd = u
+    where 
+        (AInterval a1b1) = intersec (AInterval ab) 
                                     (AInterval (Interval MinInf (Ub (0))))
         (AInterval a2b2) = intersec (AInterval ab) 
                                     (AInterval (Interval (Lb 0) PlusInf))
@@ -55,11 +56,7 @@ divInter ab cd =
         i2 = tonegative $ divcross (topositive a1b1) c2d2
         i3 = tonegative $ divcross a2b2 (topositive c1d1) 
         i4 = divcross a2b2 c2d2
-        
-        (AInterval u1) = union (AInterval i1) (AInterval i2)
-        (AInterval u2) = union (AInterval u1) (AInterval i3)
-        (AInterval u3) = union (AInterval u2) (AInterval i4)
-     in (i1,i2,i3,i4,u3)
+        (AInterval u) = foldr (union . AInterval) (AInterval i1) [i2,i3,i4] 
 
 -- transform an interval from negative to positive
 -- the (-) sign is implicit for now 
