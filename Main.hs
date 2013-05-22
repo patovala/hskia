@@ -304,15 +304,13 @@ wideningInterval (AInterval(Interval lb1 ub1)) (AInterval(Interval lb2 ub2)) lis
       if (ub1>=ub2) then
          AInterval(Interval lb1 ub1)
       else
-         AInterval(Interval lb1 (minimumInterval (removeSmaller (valueUb ub2) list)))
+         AInterval(Interval lb1 (minimumInterval (removeSmaller ub2 list)))
    |otherwise =
       if (ub1>=ub2) then
-         AInterval(Interval (maximumInterval(removeBigger (valueLb lb2) list)) ub1)
+         AInterval(Interval (maximumInterval(removeBigger lb2 list)) ub1)
       else
-         AInterval(Interval (maximumInterval(removeBigger (valueLb lb2) list)) 
-                  (minimumInterval (removeSmaller (valueUb ub2) list)))
-
-
+         AInterval(Interval (maximumInterval(removeBigger lb2 list)) 
+                  (minimumInterval (removeSmaller ub2 list)))
 
 
 maximumInterval::[Int]->Lb
@@ -323,22 +321,24 @@ minimumInterval::[Int]->Ub
 minimumInterval [] = PlusInf
 minimumInterval list= Ub (minimum list)
 
-removeSmaller::Int->[Int]->[Int]
+removeSmaller::Ub -> [Int] -> [Int]
+removeSmaller PlusInf list = list 
 removeSmaller _ []
    = []
-removeSmaller y (x:xs) 
+removeSmaller (Ub y) (x:xs) 
    = if(y>x) then
-        removeSmaller y xs
+        removeSmaller (Ub y) xs
      else
-        x:(removeSmaller y xs)
+        x:(removeSmaller (Ub y) xs)
 
-removeBigger::Int->[Int]->[Int]
+removeBigger::Lb->[Int]->[Int]
+removeBigger MinInf list = list
 removeBigger _ [] = []
-removeBigger y (x:xs) 
+removeBigger (Lb y) (x:xs) 
    = if(y<x) then
-        removeBigger y xs
+        removeBigger (Lb y) xs
      else
-        x:(removeBigger y xs)
+        x:(removeBigger (Lb y) xs)
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
