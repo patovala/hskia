@@ -66,6 +66,7 @@ evalwrpr productions = EntryNode:productions++[ExitNode]
 
 ----------------------------------------------------------------
 --
+--  The following part is onl for testing purposes
 --  Test: try to get the CFGNode list from the parser
 --
 ----------------------------------------------------------------

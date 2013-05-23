@@ -125,11 +125,11 @@ spprint2 prevs nexts = sopprint prevs nexts max
         where max = maximum [length(pretyshow x) | (_, x) <- prevs] 
 
 sopprint :: [SCFGNode] -> [SCFGNode] -> Int -> IO()
-sopprint [] [] max         = do putStr "" 
-sopprint [] (y:ys) max     = do putStrLn $ (filler max) ++ "|" ++ (printelem y max)
-                                sopprint [] ys max 
-sopprint (x:xs) [] max     = do putStrLn $ (printelem x max) ++ "|" ++ filler max
-                                sopprint xs [] max 
+sopprint [] [] max      = do putStr "" 
+sopprint [] (y:ys) max  = do putStrLn $ (filler max) ++ "|" ++ (printelem y max)
+                             sopprint [] ys max 
+sopprint (x:xs) [] max  = do putStrLn $ (printelem x max) ++ "|" ++ filler max
+                             sopprint xs [] max 
 sopprint (x:xs) (y:ys) max = do 
                 putStrLn $ (printelem x max) ++ "|" ++ (printelem y max) 
                 sopprint xs ys max 
@@ -140,5 +140,6 @@ printelem (n, x) max = pnode ++ filler len
             pnode = show n ++ ":" ++ pretyshow x
             len = max - length (pnode)
 
+-- Fill the output with the needes spaces
 filler n = replicate (n+8) ' '
 
