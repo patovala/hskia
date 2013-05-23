@@ -1,18 +1,36 @@
 
-Fixed-Point Algorithms:
+Some fixes done to the TInterval.hs:
 
-Since we are working in the CFG with nodes $ v=\{vI_{1},v_{2},...v_{n}\} $, our lattice should be $ L^{n} $, and the dataflow equations will be defined by $ \lBrack v_{i} \rBrack = F_{i}(\lBrack v_{1} \rBrack,\ldots,\lBrack v_{n} \rBrack).
+- Fixed the interval division, improved by splitting intervals and operating over this subsets. The main idea is to avoid to deal with divisions by 0.
+
+- Created a new structure for wrapping Interval and allows us to mark non reachable branchs of code.
+- In order to better handling some interval operations, we have added a new data type (SInt). And a set of conversion functions.
+ 
+Most of the Interval code takes advantage of the Haskell deriving feature to make our types behave in the intended way. At most, the \emph{instances} are derived from the Class types:
+
+Show: for presentation
+Eq: for Bound and Interval evaluation
+Num: for arithmetic Bound and Interval operations
+Fractional: for Interval division
+  
+Also, we have fixed our Join (union) and Meet (intersect) operations.
+
+Optimizer Module:
+
+The Optimizer module eliminates dead code (Code marked by the Interval Analysis as unreachable), and presentes a simplified version of the Tip code. The principal steps related to this code optimization are:
+
+- remove the dead code marked by 'NR'  from the interval analyzer 
+- from the previous step, we definitively will break some goto statements, so the next
+  step is to filter also this statements
+- filter some consecutive goto nodes ie. nodes that are pointing to the next lines
+  in the code  
+- finally, re arrange the nodes, re enumerating the still live "if" and "goto" sentences.
 
 
-Modules:
-Module Main.hs
+Ok. add some conclusions:
 
-This is the main module, it comprehends the entry point of the application and also includes the help usage method.
+Unfortunately, is important to think the best data structure that suit a given problem, in our case, a non optimal decision was to use an Interval data type with non related parts (the lower bound Lb and the Upper bound Ub). This desition complicated greately the interval operations since all cases had to be analyzed independently and most of the cases we where stuck between Lb against Ub operations. To this complexity we also faced the added complitation of dealing with -oo and oo opperations, that in this scheme complicated exponentially the solution.
+
+Finally, the solution iterates correctly using the kleenex algorithm and helped us to understand the main purpouse of this taks.
 
 
-Syntax.hs
-TCFlow.hs
-TControl.hs
-TInterval.hs
-TParse.hs
-atic.hs

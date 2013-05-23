@@ -3,7 +3,7 @@
 --  Origin   : 06-May-2013
 --  Purpose  : Implementation of Interval Operations
 
-module TInterval (Interval(..),Lb(..),Ub(..), AbsValue(..), union, intersec, interTest, ivs)
+module TInterval (Interval(..),Lb(..),Ub(..), AbsValue(..), union, intersec)
 where
 import Data.List(sort)
 
@@ -148,15 +148,9 @@ instance Fractional Interval where
 
     (Interval (Lb a)  (Ub b)) / (Interval (Lb 0) (Ub _)) = Empty
     (Interval (Lb a)  (Ub b)) / (Interval (Lb _) (Ub 0)) = Empty
-    --(Interval (Lb a)  (Ub b)) / (Interval (Lb c) (Ub d)) = 
-    --     Interval (Lb (minimum [(a `div` c),(a `div` d),
-    --                                        (b `div` c),(b `div` d)]))
-    --              (Ub (maximum [(a `div` c),(a `div` d),
-    --                                        (b `div` c),(b `div` d)]))
-    --(Interval MinInf  _) / (Interval _ _) = Interval (MinInf) (PlusInf)
-    --(Interval _  PlusInf) / (Interval _ _) = Interval (MinInf) (PlusInf)
-    --(Interval _  _) / (Interval MinInf _) = Interval (MinInf) (PlusInf)
-    --(Interval _  _) / (Interval _ PlusInf) = Interval (MinInf) (PlusInf)
+    -- Handling division thru semi interval operations
+    -- to avoid division by 0 and other concerns related
+    -- to intervals
     (/) ab cd = u
         where 
             (AInterval a1b1) = intersec (AInterval ab) 
@@ -203,7 +197,6 @@ divcross (Interval a b) (Interval c d) = Interval (tolb x) (toub y)
         toub (SInt n) = Ub n 
         toub nn = error $ "error ub:" ++ show b'++"  " ++ show b 
 divcross _ _ = Empty 
---divcross m n = error $ "what is this: " ++ show m ++" " ++ show n
 
 -- Transform from interval to serialized intervals
 translb::Lb -> SInt 
@@ -219,9 +212,7 @@ divSint :: SInt -> SInt -> SInt
 divSint SMinInf (SInt y) = SMinInf 
 divSint (SInt x) SMinInf  = SInt 0 
 -- Int
-divSint (SInt x) (SInt y) 
-            | (x*y) >= 0 = SInt (ceiling $ ((toRational x) / (toRational y)))
-            | otherwise = SInt (x `div` y) 
+divSint (SInt x) (SInt y) = SInt (x `div` y) 
 divSint (SInt x) SPlusInf = SInt 0
 divSint SPlusInf (SInt y) = SPlusInf 
 divSint _ _ = error "this operation is undefined divSint"
@@ -291,8 +282,6 @@ intersec (AInterval (Interval MinInf ub1)) (AInterval (Interval lb2 ub2))
             (Ub x) = ub1
             (Lb y) = lb2
             (Ub z) = ub2
-            -- IPV because intervals seems to be inclusive
-            -- r = if (x<=y && x<=z) then Empty else (Interval (Lb x') (Ub y'))
             r = if (x<y && x<z) then Empty else (Interval (Lb x') (Ub y'))
             (x':y':z':[]) = sort (x:y:z:[])
 -- [a,oo] [b,c]
@@ -323,19 +312,23 @@ intersec (AInterval (Interval lb1 ub1)) (AInterval(Interval lb2 PlusInf))
             r = if (z>x && z>y) then Empty else (Interval (Lb y') (Ub z'))
             (x':y':z':[]) = sort (x:y:z:[])
 
--- Test the interval behaviour
-a = [(MinInf),(Lb (-1)),(Lb 0),(Lb 2),(Lb 4)]
-b = [(Ub 0),(Ub 2),(Ub 4),PlusInf]
-
-ivs = [(x,y)| x<-ivs', y<-ivs']
-    where ivs' = (map (\(x,y) -> Interval x y) (zip a b)) ++ [ Empty ]
-
--- Interval Tester, given an interval operations
+-- 
+-- interTest: Is an interval tester using partial functions, just pass
+-- the set of intervals (or you can use ivs) and the desired operation
+-- (like intersection, (/), etc)
+--
 interTest::[(Interval, Interval)]->(Interval -> Interval -> Interval)
             ->[(Interval, Interval, Interval)]
 interTest [] _ = []
 interTest ((a,b):xs) f = (a, b, c) : interTest xs f
         where c = (f a b)
+
+-- Intervals for testing  
+a = [(MinInf),(Lb (-1)),(Lb 0),(Lb 2),(Lb 4)]
+b = [(Ub 0),(Ub 2),(Ub 4),PlusInf]
+
+ivs = [(x,y)| x<-ivs', y<-ivs']
+    where ivs' = (map (\(x,y) -> Interval x y) (zip a b)) ++ [ Empty ]
 
 -- To test the function:
 -- interTest ivs intersec2
@@ -368,5 +361,3 @@ interTest ((a,b):xs) f = (a, b, c) : interTest xs f
 -- (_|_,[0,5],_|_),
 -- (_|_,[2,oo],_|_),
 -- (_|_,_|_,_|_)]
-
-

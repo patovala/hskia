@@ -8,9 +8,10 @@
 --           : the branch and the conditions for each branch
 -------------------------------------------------------------------------------
 
-module TVarStateOperations(VarState(..),VarStates(..),
- getVarTop, getUnionPredIntervals, convertVartoVal, replaceVarVal, 
- evalCondition, intersecVarState,entryState, getVarBottom,getVarNoReachState)
+module TVarStateOperations(VarState,VarStates, getVarTop, getUnionPredIntervals,
+                            convertVartoVal, replaceVarVal, 
+                            evalCondition, intersecVarState,entryState, 
+                            getVarBottom,getVarNoReachState)
 
 where
 import Data.List

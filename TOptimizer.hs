@@ -37,35 +37,40 @@
 -- 
 -- 0                    | 0:
 --    <entry>           |    <entry>
--- 1                    | 1: "i"=[-oo,oo] "j"=[-oo,oo] "k"=[-oo,oo]
---    i = "9"           |    i = "9"
--- 2                    | 2: "i"=[9,9] "j"=[-oo,oo] "k"=[-oo,oo]
---    if "i > 10" goto 4|    if "i > 10" goto 4
--- 3                    | 3: "i"=[9,9] "j"=[-oo,oo] "k"=[-oo,oo]
+-- 1                    | 1: i=[-oo,oo] j=[-oo,oo] k=[-oo,oo]
+--    i = 9           |    i = 9
+-- 2                    | 2: i=[9,9] j=[-oo,oo] k=[-oo,oo]
+--    if i > 10 goto 4|    if i > 10 goto 4
+-- 3                    | 3: i=[9,9] j=[-oo,oo] k=[-oo,oo]
 --    goto 7            |    goto 7
--- 4                    | 4: "i"=_|_ "j"=[-oo,oo] "k"=[-oo,oo]
---    j = "12"          |    j = "12"
--- 5                    | 5: "i"=_|_ "j"=_|_ "k"=_|_
---    k = "13"          |    k = "13"
--- 6                    | 6: "i"=_|_ "j"=_|_ "k"=_|_
+-- 4                    | 4: i=_|_ j=[-oo,oo] k=[-oo,oo]
+--    j = 12          |    j = 12
+-- 5                    | 5: i=_|_ j=_|_ k=_|_
+--    k = 13          |    k = 13
+-- 6                    | 6: i=_|_ j=_|_ k=_|_
 --    goto 9            |    goto 9
--- 7                    | 7: "i"=_|_ "j"=_|_ "k"=_|_
---    j = "0"           |    j = "0"
--- 8                    | 8: "i"=_|_ "j"=[0,0] "k"=[-oo,oo]
---    k = "0"           |    k = "0"
--- 9                    | 9: "i"=_|_ "j"=[0,0] "k"=[0,0]
---    i = "12"          |    i = "12"
--- 10                    | 10: "i"=[12,12] "j"=[0,0] "k"=[0,0]
+-- 7                    | 7: i=_|_ j=_|_ k=_|_
+--    j = 0           |    j = 0
+-- 8                    | 8: i=_|_ j=[0,0] k=[-oo,oo]
+--    k = 0           |    k = 0
+-- 9                    | 9: i=_|_ j=[0,0] k=[0,0]
+--    i = 12          |    i = 12
+-- 10                    | 10: i=[12,12] j=[0,0] k=[0,0]
 --    <exit>            |    <exit>
 --
--- ... And, the resulting code should improvize the code to this:
--- 
--- 0: EntryNode -> []
--- 1: AsgNode "i" (Con 9) -> [0]
--- 7: AsgNode "j" (Con 0) -> [3]
--- 8: AsgNode "k" (Con 0) -> [7]
--- 9: AsgNode "i" (Con 12) -> [8,6]
--- 10: ExitNode -> [9]
+-- ... And, the resulting code should be improvised like this: 
+--
+-- 0:<entry>               |0:<entry>               
+-- 1:i = 9                 |1:i = 9                 
+-- 2:if i > 10 goto 4      |2:k = 0                 
+-- 3:goto 7                |3:i = 12                
+-- 4:j = 12                |4:<exit>                
+-- 5:k = 13                |                        
+-- 6:goto 9                |                        
+-- 7:j = 0                 |                        
+-- 8:k = 0                 |                        
+-- 9:i = 12                |                        
+-- 10:<exit>               |                        
 --
 
 module TOptimizer (removedead)
@@ -78,16 +83,13 @@ import TCFlow(CFGNode(..))
 import TInterval(Interval(..),AbsValue(..))
 import Data.List(intersect)
 
-
--- TODO: this imports must be analyzed before integration
-
 -- Function that receives the SCFGNodes and varstates and returns the SCFGNodes 
 -- without the dead code in terms of non reacheability
 removedead :: [SCFGNode] -> VarStates -> [SCFGNode]
 --removedead nodes = renumerate . filtergotos . filterdead . filterbottom nodes 
 removedead nodes = renumerate . filtergotos . filterdead . filterbottom nodes 
 
--- filter the bottom vars 
+-- filter the unreachable vars 
 filterbottom :: [SCFGNode] -> VarStates -> [SCFGNode]
 filterbottom _ [] = []
 filterbottom (x:xs)(y:ys)  
@@ -128,16 +130,10 @@ renumerate nodes = zip [0..] (map fixgotofunc cfgnodes)
           fixgotofunc (IfGotoNode e n) = (IfGotoNode e (findnode n)) 
           fixgotofunc (GotoNode n) = (GotoNode (findnode n)) 
           fixgotofunc s = s 
+          -- TODO: test this
           findnode m = if ((matches m) /= []) then snd ( head (matches m)) else -1
           matches m = filter (\(k, v) -> m == k) $ nodepairs
           -- findnode m = m 
-
--- Se pierden las referencias así que hay que manejar caso por caso y reestructurar
--- todo, justo despues de que ha eliminado algún nodo, se debe correr un verificador
--- que nos diga cuando un nodo ha desaparecido y ya no es alcanzable, se debe 
--- eliminar toda esa rama, y volver nuevamente a rodar el comprobador de sentido
--- el comprobador de sentido recursivo me dice hasta cuando se debe volver a 
--- intentar conseguir semántica en el programa
 
 -- assert that all the gotos have nodes or keep filtering 
 assert :: [SCFGNode] -> [SCFGNode]
