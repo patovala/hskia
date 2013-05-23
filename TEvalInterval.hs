@@ -82,6 +82,8 @@ evalInterExp (MultInter e1 e2)
    = (evalInterExp e1) * (evalInterExp e2) 
 evalInterExp (DivInter e1 e2) 
    = (evalInterExp e1) / (evalInterExp e2)
+evalInterExp (MoreInter (ConInter (Interval MinInf PlusInf)) 
+   (ConInter (Interval MinInf PlusInf))) = Interval MinInf PlusInf
 evalInterExp (MoreInter e1 e2) 
    = let a = evalInterExp e1
          b = evalInterExp e2
@@ -96,7 +98,8 @@ evalInterExp (MoreInter e1 e2)
               Interval (Lb 1) (Ub 1)
            else
              Interval (Lb 0) (Ub 0)
-
+evalInterExp (EqualInter (ConInter (Interval MinInf PlusInf)) 
+   (ConInter (Interval MinInf PlusInf))) = Interval MinInf PlusInf
 evalInterExp (EqualInter e1 e2)  
    = let a = evalInterExp e1
          b = evalInterExp e2
