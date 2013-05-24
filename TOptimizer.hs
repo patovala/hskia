@@ -95,6 +95,7 @@ filterall nodes
         | nodes == nodes' = nodes
         | otherwise = filterall nodes'
         where nodes' = (filterdead . filtergotos) nodes
+        --where nodes' = filterdead nodes
 
 -- filter the unreachable vars 
 filterbottom :: [SCFGNode] -> VarStates -> [SCFGNode]
@@ -124,8 +125,6 @@ filterdead testnodes = if (testnodes == testnodes2) then testnodes
 filtergotos :: [SCFGNode] -> [SCFGNode]
 filtergotos [] = []
 filtergotos (x@(_, GotoNode n):y@(m, _):xs) 
-    | n == m  = (filtergotos (y:xs))
-filtergotos (x@(_, IfGotoNode _ n):y@(m, _):xs) 
     | n == m  = (filtergotos (y:xs))
 filtergotos (x:xs) = x : (filtergotos xs)
 
