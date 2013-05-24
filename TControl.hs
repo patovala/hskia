@@ -100,8 +100,9 @@ getconst (x@(_, IfGotoNode exp _):xs) = cons ++ (getconst xs)
               (_, cfgnode) = x
 getconst (x:xs) = getconst xs
 
+
 filtercons :: Exp -> [Int] 
-filtercons (Con i) = [i]
+filtercons (Con i) = i:(i+1):(i-1):[]
 filtercons (Op _ e1 e2) = filtercons e1 ++ filtercons e2
 filtercons x = [] 
 

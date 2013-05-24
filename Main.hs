@@ -26,7 +26,7 @@ import TVarStateOperations(entryState, getVarBottom, VarState(..),
                            VarStates(..),getVarTop, getUnionPredIntervals, 
                            convertVartoVal,replaceVarVal,evalCondition, 
                            intersecVarState,getVarNoReachState)
-
+import TEvalConditions(evalConditionBorder,removeBorders)
 import TOptimizer(removedead)
 
 help :: String -> IO ()
@@ -116,25 +116,24 @@ doOptimize fp
 --[int] with the landmarks set 
 iterations::[PredCFGNode]->VarStates->Int->Int->[Int]->VarStates
 iterations nodes x 0 0 lmarks
-   = let initialIteration = iteration nodes 0 lmarks [] [] 
+   = let initialIteration = iteration nodes 0 lmarks [] [] [] 
                             (entryState (length nodes) 
                             (nub(getVarBottom nodes))) []
-         secondIteration = iteration nodes 0 lmarks [] [] initialIteration []
-         thirdIteration = iteration nodes 0 lmarks [] [] secondIteration []
-         fourIteration = iteration nodes 0 lmarks [] [] thirdIteration  []
-     in  --secondIteration--initialIteration
-         iterations nodes initialIteration 1 0 lmarks 
+         secondIteration = iteration nodes 0 lmarks [] [] [] initialIteration []
+         thirdIteration = iteration nodes 0 lmarks [] [] [] secondIteration []
+     in  iterations nodes initialIteration 1 0 lmarks 
 
 iterations nodes stateIn i 4 lmarks = stateIn 
 
 iterations nodes stateIn i j lmarks
    |i == 3 = 
-      let newState = iteration nodes 0 lmarks [] [] stateIn []
+      let newState = iteration nodes 0 lmarks [] [] [] stateIn []
           stateWidening = wideningState stateIn newState lmarks
       in
           iterations nodes stateWidening 1 (j+1) lmarks 
+          --stateWidening
    |otherwise =
-     let newState = iteration nodes  0 lmarks [] [] stateIn []
+     let newState = iteration nodes  0 lmarks [] [] [] stateIn []
      in 
         if(stateIn == newState) then
            newState
@@ -147,20 +146,20 @@ iterations nodes stateIn i j lmarks
 --current: the id of the current node
 --reachables: List of the nodes that are reachable in the 
 --            current iteration
---intersect: It is the intersect nof the false brach evalueted
+--intersect: It is the intersect of the false branch evaluated
 --           in a conditional node 
 --stateOld : The state of the previous iterantion
 --stateIn : where the state of the current iteration is build
 -------------------------------------------------------------------------------
-iteration::[PredCFGNode]->Int->[Int]->VarState->VarState->
+iteration::[PredCFGNode]->Int->[Int]->VarState->VarState->VarState->
            VarStates->VarStates->VarStates
-iteration [] _ _ _ _ _ stateIn = stateIn
-iteration ((EntryNode,_):nodes) current _ _ _ stateOld stateIn
+iteration [] _ _ _ _ _ _ stateIn = stateIn
+iteration ((EntryNode,_):nodes) current _ _ _ _ stateOld stateIn
    =  iteration nodes  (current+1) ((current+1):[]) 
                         --[] [] stateOld [nub(getVarTop nodes)]
-                        [] [] stateOld [nub(getVarBottom nodes)]
-iteration (((AsgNode var exp),n):nodes) current reachable intersect 
-          union stateOld stateIn
+                        [] [] [] stateOld [nub(getVarBottom nodes)]
+iteration (((AsgNode var exp),n):nodes) current reachable vintersect 
+          vunion vborders stateOld stateIn
    | elem current reachable
       = let 
            pastState1 = getUnionPredIntervals n stateOld stateIn 
@@ -171,64 +170,73 @@ iteration (((AsgNode var exp),n):nodes) current reachable intersect
            state = replaceVarVal pastState var inter3
         
         in iteration nodes  (current+1) ((current+1):reachable) 
-           [] [] stateOld (stateIn ++ [state])
+           [] [] [] stateOld (stateIn ++ [state])
     | otherwise 
       = let
            state2 = getVarNoReachState(stateOld !! current)
-        in iteration nodes  (current+1) reachable [] [] 
+        in iteration nodes  (current+1) reachable [] [] []
            stateOld (stateIn ++ [state2]) 
 iteration (((IfGotoNode exp next),n):nodes)  current reachable 
-          intersect union stateOld stateIn
+          vintersect vunion vborders stateOld stateIn
     | elem current reachable
       = let 
            pastState1 = getUnionPredIntervals n stateOld stateIn 
            pastState = map changeNoReach pastState1
            eval = evalCondition exp pastState next (current+1) reachable
+           evalBorders = evalConditionBorder exp pastState next (current+1) 
+           falseBorders = snd evalBorders
            trueIntersec = fst(fst eval)
            falseIntersec = snd(fst eval)
            newReachable = snd eval
            preNewState = intersecVarState pastState trueIntersec
            newState = changeBottom preNewState pastState
         in iteration nodes (current+1) newReachable falseIntersec 
-           pastState stateOld (stateIn ++ [newState])   
+           pastState1 falseBorders stateOld (stateIn ++ [newState])   
+           -- error (show pastState1)
     |otherwise 
       = let 
            state = getVarNoReachState (stateOld !! current)
            eval = evalCondition exp state next (current+1) reachable
-           falseIntersec = snd(fst eval)
-        in iteration nodes (current+1) reachable falseIntersec state 
-           stateOld (stateIn ++ [state])
-iteration (((GotoNode next),n):nodes) current reachable intersect 
-          union stateOld stateIn
+           evalBorders = evalConditionBorder exp state next (current+1) 
+           falseBorders = snd evalBorders
+           falseIntersec = snd(fst eval)      
+        in iteration nodes (current+1) reachable falseIntersec 
+            state falseBorders  stateOld (stateIn ++ [state])
+iteration (((GotoNode next),n):nodes) current reachable vintersect 
+          vunion vborders stateOld stateIn
     | elem current reachable
       = let
-        pastState1 = getPastState union 
+         pastState1 = getPastState vunion 
                      (getUnionPredIntervals n stateOld stateIn) 
-        pastState = map changeNoReach pastState1
-        newState = intersecVarState pastState intersect 
+         pastState = map changeNoReach pastState1
+         newBorders = removeBorders vborders pastState  
+         newState = intersecVarState newBorders vintersect
+         
         in iteration nodes (current+1) (next:reachable) 
-           [] [] stateOld (stateIn ++ [newState])
+           [] [] [] stateOld (stateIn ++ [newState])
+           -- error (show vunion)
     | otherwise
       = let   
            state = getVarNoReachState (stateOld !! current)
         in
-           iteration nodes (current+1) reachable [] [] 
+           -- error (show vunion)
+           iteration nodes (current+1) reachable [] [] []
            stateOld (stateIn ++ [state])
 iteration (((OutputNode exp),n):nodes)  current reachable 
-          intersect union stateOld stateIn
+          vintersect vunion vborders stateOld stateIn
     | elem current reachable
       = let
            state1 = getUnionPredIntervals n stateOld stateIn
            state = map changeNoReach state1
-        in  iteration nodes (current+1) ((current+1):reachable) [] [] 
+        in  iteration nodes (current+1) ((current+1):reachable) [] [] []
             stateOld (stateIn ++ [state])
     | otherwise
        = let         
             state = getVarNoReachState (stateOld !! current)
-         in iteration nodes  (current+1) ((current+1):reachable) [] [] 
+         in iteration nodes  (current+1) reachable [] [] []
             stateOld (stateIn ++ [state])
-iteration (((ExitNode),n):nodes)  current reachable intersect 
-          union stateOld stateIn
+iteration (((ExitNode),n):nodes)  current reachable vintersect 
+          vunion vborders stateOld stateIn
     | elem current reachable
         = let
              pastState1 = getUnionPredIntervals n stateOld stateIn

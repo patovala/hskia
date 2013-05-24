@@ -8,10 +8,10 @@
 --           : the branch and the conditions for each branch
 -------------------------------------------------------------------------------
 
-module TVarStateOperations(VarState,VarStates, getVarTop, getUnionPredIntervals,
-                            convertVartoVal, replaceVarVal, 
-                            evalCondition, intersecVarState,entryState, 
-                            getVarBottom,getVarNoReachState)
+module TVarStateOperations(VarState(..),VarStates(..),
+ getVarTop, getUnionPredIntervals, convertVartoVal, replaceVarVal, 
+ evalCondition, intersecVarState,entryState, getVarBottom,
+ getVarNoReachState,getIntersectIntervals,getVarTopState)
 
 where
 import Data.List
@@ -222,18 +222,18 @@ getLeftIntersect _ _ state (interTrue1, interFalse1)
 --Funtion that receive a more interval expresion
 --and return a tuple that its first value is the
 --interval for true condition and the second value
---is the interval for false condition  
+--is the interval for false condition   
 getIntersectIntervals::Interval->InterExp->
                        ((String,Interval),(String,Interval)) 
 getIntersectIntervals branch 
                      (MoreInter(ConInter (Interval (Lb i)(Ub i2)))
-                     (VarInter s))
-    | branch == Interval(Lb 1) (Ub 1) =
-       ((s,Interval MinInf (Ub (i-1))), (s,Interval (Lb i) PlusInf))
-    | branch == Interval(Lb 0) (Ub 0) =
-       ((s,Interval MinInf (Ub (i))), (s,Interval (Lb i) PlusInf))
-    | branch == Interval MinInf PlusInf =
-       ((s,Interval MinInf (Ub (i-1))), (s,Interval (Lb i) PlusInf))
+                     (VarInter s)) 
+       | branch == Interval(Lb 1) (Ub 1) =
+         ((s,Interval MinInf (Ub (i2-1))), (s,Interval (Lb i2) PlusInf))
+       | branch == Interval(Lb 0) (Ub 0) =
+         ((s,Interval MinInf (Ub (i))), (s,Interval (Lb (i-1)) PlusInf))
+       | branch == Interval MinInf PlusInf =
+         ((s,Interval MinInf (Ub (i2-1))), (s,Interval (Lb i2) PlusInf)) 
 
 getIntersectIntervals branch (MoreInter(ConInter _)(VarInter s))
    =((s,Interval MinInf PlusInf), (s,Interval MinInf PlusInf))  
@@ -247,13 +247,13 @@ getIntersectIntervals branch (EqualInter (ConInter _)(VarInter s))
    =((s,Interval MinInf PlusInf), (s,Interval MinInf PlusInf))
    
 getIntersectIntervals branch (MoreInter(VarInter s) 
-                     (ConInter (Interval (Lb i)(Ub i2))))
-    | branch == Interval(Lb 1) (Ub 1) =
-        ((s,Interval (Lb (i+1)) PlusInf), (s,Interval MinInf (Ub i)))
-    | branch == Interval(Lb 0) (Ub 0) =
-        ((s,Interval (Lb (i)) PlusInf), (s,Interval MinInf (Ub i)))
-    | branch == Interval MinInf PlusInf =
-        ((s,Interval (Lb (i+1)) PlusInf), (s,Interval MinInf (Ub i)))
+                     (ConInter (Interval (Lb i)(Ub i2)))) =
+    -- |  branch == Interval(Lb 1) (Ub 1) =
+        ((s,Interval (Lb (i2+1)) PlusInf), (s,Interval MinInf (Ub i2)))
+    -- | branch == Interval(Lb 0) (Ub 0) =
+      --  ((s,Interval (Lb (i)) PlusInf), (s,Interval MinInf (Ub i)))
+    -- | branch == Interval MinInf PlusInf =
+       -- ((s,Interval (Lb (i+1)) PlusInf), (s,Interval MinInf (Ub i)))
 
 getIntersectIntervals branch (MoreInter(VarInter s) (ConInter _))
    =((s,Interval MinInf PlusInf), (s,Interval MinInf PlusInf))
@@ -264,6 +264,7 @@ getIntersectIntervals branch (EqualInter(VarInter s)
 
 getIntersectIntervals branch (EqualInter(VarInter s) (ConInter _))
    =((s,Interval MinInf PlusInf), (s,Interval MinInf PlusInf))
+
    
 --Function that add the reachbles according
 --with the value of an interval   
@@ -290,10 +291,3 @@ getVarNoReachState (states) =
             list
         else
             states
-
-{--initMap :: [DFNode] -> [(DFNode, [Mapping], [Mapping])]
-initMap [] = []
-initMap nodes = initMap' nodes varsBot
-    where varsBot = sortMapping (map f allVars)   -- Map all vars to bot
-          allVars = getVars nodes                 -- Get all vars
-          f = \s -> s = NoReach --}
