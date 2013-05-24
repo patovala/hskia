@@ -185,14 +185,14 @@
 \subsection{Introduction}
 
 % this are diana's modifications:
-Abstract Interpretation allows to understand and obtain information about possible
+Abstract Interpretation allows to understand and obtain information about all possible
 behaviours of a program without executing it. This report presents the design of
 an example implementation of abstract interpretation using data flow analysis
 (representation of the program using a graph) to know the possible values that could
 take the variables in each program point represented by an interval. Therefore the
 lattice used to implement the abstract interpretation is the interval lattice.
 
-The implementation was develop using Haskell due to the facilities that this language
+The implementation was developed using Haskell due to the facilities that this language
 allows to implement mathematic expressions the programs that can be analysed are the
 ones that could be generated using a language called TIP.
 
@@ -210,18 +210,19 @@ task[1]. The program was split in the following parts:
   \item \emph{Tip Parser (TParse, Syntax)}: This component was built using Happy\footnote{http://www.haskell.org/happy/} and the modules previously provided for this project.
   \item \emph{Tip Flow Generator (TCFlow)}: These modules convert a tip program in a list of CFGNode(s).
   \item \emph{Computation Sequence (TControl)}: This module finds the predecessors of each node of the list of nodes. 
-  \item \emph{Interval Operations (TInterval)}: In this module the arithmetic, union and intersect operations are defined for intervals. 
+  \item \emph{Interval Operations (TInterval)}: In this module the arithmetic, meet(union) and join(intersect) operations are defined for intervals. 
 
-  \item \emph{Evaluation of Interval Expressions (TEvalInterval)}: This module includes the functionality to transform TIP expressions on interval expressions, additionally it includes the functionality to evaluate interval expressions.
-  \item \emph{Set of VarState operations (TVarStateOperations)}: This module contains functions to manipulate a set of variables, and to calculate the new values of the variables.
+  \item \emph{Evaluation of Interval Expressions (TEvalInterval)}: This module includes the functionality to transform TIP expressions on interval expressions. Additionally, it includes the functionality to evaluate interval expressions.
+  \item \emph{Set of VarState Operations (TVarStateOperations)}: This module contains functions to manipulate a set of variables, and to calculate the new values of the variables.
+  \item \emph{Conditionals Constraints (TEvalConditions)}: This module includes the functions to evaluate the constraints that should be added to the variables in the conditionals statements.  
   \item \emph{The Interval Analysis(Main)}: The main module in charge of the interval analysis and widening/narrowing.
 
 \end{itemize}
 
-%Our solution has been divided in different modules which performs specific tasks. 
+%The solution has been divided in different modules which performs specific tasks. 
 \subsection{Tip Parser}
 
-The parsing has been adapted starting from the module provided for this project, done using Happy Parser Generator, this package has allowed us to start with a set of well defined syntax elements to be used for our subsequent phases.
+The parsing provided for this project was developed using Happy Parser Generator. this package has allowed to start with a set of well defined syntax elements to be used in the subsequent phases.
 
 
 \subsection{Flow Generator and Control Representation}
@@ -239,128 +240,118 @@ data CFGNode
 
 \end{verbatim}
 
-Since we will be doing a forward analysis, this simple structure will help us to produce the set of nodes and predecessors (based on some ideas from \cite{Cousot} and \cite{Bourdoncle}). % PV comented suggested by Diana Also is important to realize that we are working on a lifted lattice of Intervals: $ Intervals = lift({[l,h] \mid l,h \in N \land l \leq h}) $. where $ N = \{-\infty,\cdots,-2,-1,0,1,2,\cdots,\infty\} $, and the order $ [l1,h2] \sqsubseteq [l2,h2]  \Leftrightarrow l1 \leq l2 \land h1 \leq h2 $.
+Since interval analysis is performed using forward analysis, this simple structure is useful to produce the set of nodes and predecessors (based on some ideas from \cite{Cousot} and \cite{Bourdoncle}). % PV comented suggested by Diana Also is important to realize that we are working on a lifted lattice of Intervals: $ Intervals = lift({[l,h] \mid l,h \in N \land l \leq h}) $. where $ N = \{-\infty,\cdots,-2,-1,0,1,2,\cdots,\infty\} $, and the order $ [l1,h2] \sqsubseteq [l2,h2]  \Leftrightarrow l1 \leq l2 \land h1 \leq h2 $.
 
 
 \subsection{Computation sequence} 
 
-After getting the linearized nodes structure, this step will traverse the graph to get a collection of predecessors, this step is important since with this new structure, this process will provide valuable information to be feed to the interval analysis. The Haskell structure to hold this information is represented  as follows:
+After getting the linearized nodes structure, the next step is to traverse the graph to get a collection of predecessors. This is important since this allows to generated a new structure that provides valuable information to  feed the interval analysis.  The Haskell structure that represents this information is composed for a node and a list of Int that contains the id references of each CFGNode from where this node could be reached. The  structure is represented as follows:
 
 \begin{verbatim}
 type PredCFGNode = (CFGNode,[Int])
 \end{verbatim}
 
-The \emph{ Int } list holds the node id references for each \emph{ CFGNode } from where this node could be reached. The operations included in this module, are also in charge of constants collecting, to be used for the widening phase.
+An additional responsibility of this module is to include the operations for collecting the constants (landmarks) to be used in the widening phase.
 
 \subsection{Interval Operations}
-The interval operations of this module has been constructed overloading the Haskell type classes for the Ord and Num. Haskell incorporates a strong extendible type scheme, from where we have shaped the data logic and the operations behaviours. We have created and overloaded the following operations:
+The interval operations of this module has been constructed overloading the Haskell type classes for the Ord and Num. Haskell incorporates a strong extendible type scheme, from where have been shaped the data logic and the operations behaviours. The operations created and overloaded are the following:
 
 \begin{description}
   \item[$ \le $] less than or equal
   \item[$ > $] greater than 
   \item[$ + $] interval addition 
-  \item[$ - $] interval difference
+  \item[$ - $] interval subtraction
   \item[$ * $] interval multiplication 
   \item[$ \div $] interval division
-  \item[$ \cap $] meet
-  \item[$ \cup $] join 
+  \item[$ \cap $] meet (union)
+  \item[$ \cup $] join (intersection) 
 \end{description}
 
 
 \subsection{Evaluation of Interval Expressions}
 
-In order to evaluate the program expressions using an Interval Domain, two functions were developed and are important to mention: 
+In order to evaluate the program expressions using an interval domain, two main functions were developed and it is important to mention them:
 
 \begin{description}
     \item[transformExp:] 
-    The data type of the tip programs are mainly integers (concrete
-domain), however in the interval analysis is used the abstract domain of interval. For
-this reason was created this function that transform Integer expressions in Interval
-Expressions.
-    
-    \item[evalInterExp:] This function receives an Interval expression, with the corresponding variable replaced by an interval and calculates the expression, yielding an Interval as a result.
-In the case of an expression of type a > b, the result is [1,1] if the condition is \emph{ True } for all
-interval numbers. The result is [0,0] if the condition is \emph{ False } for all interval numbers and
-Finally if the condition is True for some numbers and False for others the result of this
-expression is $ [-\infty, \infty] $.
+The tip language have been designed to deal with integers (concrete
+domain), however in interval analysis is used the abstract domain of  intervals. For
+this reason was created this function that transform Integer expressions in interval
+expressions. To perform this task the function follows the patterns given by the structure of integer expressions and as a result that the interval expression data structure is a mirror of the integer one, the conversion is match one pattern again the other.
+
+    \item[evalInterExp:] This function receives an interval expression where the values of the variables have been previously replaced by an interval. It evaluates the expression using interval operations, yielding an Interval as a result. for example it evaluated [0,0]+[1,1] and the result is [1,1].
+ In the case of conditional Interval expression (type a > b or a == b) the result of evaluating the expression is [1,1] if the condition is only  \emph{ True } for all interval values. Then the result is [0,0] if the condition is \emph{ False } for all interval numbers and finally if the condition is true for some values and false for others the result of this expression is [0,1].
+
 
 \end{description}
 
 
-\subsection{ Set of VarState operations }
-The set of \emph{ VarState } operations include auxiliary functions to perform the algorithm
-to do the interval analysis. It include for example functions to know the intervals that
-represent a condition, functions to initialize states (bottom or top), functions to union
-and intersect \emph{ VarStates }, used to resolve the equations in each program point.
+\subsection{Set of VarState operations}
+The set of \emph{ VarState } operations includes auxiliary functions to perform the algorithm
+to do the interval analysis. It include for example functions 
+to initialize states (bottom or top), functions to union
+and intersect \emph{ VarStates } which are used to resolve the equations in each program point and functions to manage to obtain and replace values in a  \emph{ VarState} and in a \emph{ VarState}.
+
+\subsection{Conditionals Constraints}
+This module calculates the constraints that should be applied, when a node with a conditional 
+expression is obtained in order to have more precise approximations. In the program are considered two types of constraints. First the constraints that are resulted of an expression of type bigger than (>) in this case the constraints are intersect with the value of the variables at this program point to obtain more refined results for the True and False branch. For example if the condition is (j>5) it is possible to say that if the condition is true the values of j should fall in the interval [6,$\infty$] and if it is false the constraint interval should be [$-\infty$,5]. 
+
+The second type of constraints are the ones obtained for the expressions of type (==) in this case for the true branch the constraint is also intersected, however for the false branch the value is optimized if the result of the constraint allows to remove border values, for example, if the condition is j==[0,5] and the value of the variable is [0,10]  it is possible to remove the border to obtain a more refined value of [5,10] for the false branch.
+
 
 \subsection{The Interval Analysis}
 The main data structures involved in the interval analysis are:
 
 \begin{itemize}
+\item \emph{ data AbsValue= NoReach | AInterval }: This is a wrap for an Interval to differentiate the value when a variable is bottom(no initialized) or no reachable.
   \item \emph{ type VarState = [(VarName, Interval)] }: This represents the possible values of a
     set of variables in a program point of a tip program.
-
   \item \emph{ type VarStates = [VarState] }: This represents the possible values that could
     take the set the variables in the different program point as a result of kleene
     iteration.
-  \item \emph{ type PredCFGNode = (CFGNode,[Int]) }: A collection of nodes and predecessors (in a tuple)
+  \item \emph{ type PredCFGNode = (CFGNode,[Int]) }: A collection of nodes and their predecessors (in a tuple)
 \end{itemize}
 
 The Interval Analysis is performed using three main functions:
 
 \begin{description}
   \item[iteration:] This function represents the execution of a kleene iteration, in other words
-    this if the function $ f(x_{1},x_{2},...,x_{n}) $ that will be executed n times in order to find the fix
+    this if the function $ f(x_{1},x_{2},...,x_{n}) $ that will be executed n times in order to find the fixed
     point. Consequently this function receives a VarStates with the result of the previous
     execution and returns a new VarStates with the result of the current iteration.
 
     Additionally, to the \emph{VarStates} of the previous iteration, this function receives a
-    \emph{ PredCFGNode } list. The algorithm goal is to process each element of this list. To fulfil this
+    \emph{ PredCFGNode } list. The algorithm goal is to process each element of this list and to fulfil this
     task structural induction based in \emph{ CFGNode } is used, it means that a program equation
     was developed for each data constructor of the type \emph{ CFGNode } and the non recursive
-    equation or exit case correspond to the data constructor "Exit Node".
+    equation or exit case corresponds to the data constructor "Exit Node". 
+    Each time that a node is evaluated a new \emph{VarState} is added to the list of \emph{VarStates} that corresponds
+    to the state of the current iteration. The program also manages a list of reachable points that allows to each node to know
+    if it is a reachable point or not.	
     \\
 
-    According to the Data Constructor of the node, the algorithm perform the following
-    steps:
+    For each node in the list the algorithm executes the following steps to decide the \emph{VarState} or value of the variables in each program point for the current iteration:
 
     \begin{enumerate}
-      \item \textbf{Union of Predecessors}: Find the values of the set of variables in the predecessors
-        nodes and union them. This values are obtained for the current state if the
-        predecessor has been already evaluated other case they are obtained from the
-        previous state.
-      \item \textbf{Intersection of condition}: If the node is a conditional node it is possible to
-        restrict the values according with the condition. The intervals for intersections
-        are calculated considering the two branch of a condition True and False. The
-        False conditional interval is pass to the goto node that represent the false
-        branch to obtain the value of the variables in this point if the restriction is false.
-      \item \textbf{Calculation of new value}: The union values are intersect intervals of the
-        condition and this new value is added to the new state.
-      \item \textbf{Evaluate Reachable}: Considering the current values of the variables it evaluate
-        the program points that the program could arrive.
+      \item \textbf{Evaluate Reachability}: The first thing that it is evaluated in any kind of node is if it is a reachable point (the element exists in the list of reachable). If it is not reachable, so it is added a \emph{VarState} in the current iteration with all variables with value NR (No Reachable) and nothing is added to the list of not reachable, but if the node is reachable the successors  are added to the list of reachable and the following steps are executed (in a conditional node the successor depends on if the condition is True, False or Both).
+      \item \textbf{Union of Predecessors}: This step applies to all kind of nodes and consists in to find the values of the variables in the predecessors nodes and applying union to all of them. If the value of a predecessor node has not been calculated in the current iteration, so the state with the past values is used to obtain them.
+      \item \textbf{Intersection with Condition Constraints}: If the node is a conditional (it means the type "IfGotoNode Exp Int") node, so it is possible to restrict the values of the intervals according with the constraints. To do this the result of the union of the predecessors variables is refined intersecting with constraints values. It is important to notice that the information of the constraints is obtained in this point but the information is passed through the program calls to the True and False branch to improve the precision of the intervals in those future program points. 
+      
     \end{enumerate}
 
 
-  \item[wideningState:] This function do the work of widening. This receives two VarStates and
+  \item[wideningState:] This function does the work of widening. This receives two \emph{ VarStates } and
     go over the two \emph{ VarStates } in a recursive way, getting the pair of variables and applying
-    the widening operator to generate a new \emph{ VarStates } with the result.
+    the widening operator to generate a new \emph{ VarStates } as a result.
 
-  \item[iterations:] This function control the process to obtain a fix point. To do this task the
-    function invoke iterations and \emph{ wideningState }. The function first call iteration passing
-    as a previous \emph{ VarState } the variables initialized in \emph{ Empty }. Then the process invoke
-    the function \emph{ i times }, but before invoke each iterations the algorithm compare if the
-    previous \emph{ VarState } is equal to new one if it is the case means that it is already stabilized,
-    this will be the approximation returned. Otherwise it applies widening over the two last
-    \emph{ VarStates } calculated and the result is the entry to execute iteration \emph{ i times }. In this way it
-    is calculated the variables values using widening and then the function is executed again,
-    having as a result narrowing.
+  \item[iterations:] This function controls the process to obtain a fixed point. To do this task it invokes \emph{ iteration } and  \emph{ wideningState } functions. First it calls iteration passing \emph{ VarStates } with the variables initialized in \emph{ Empty }(bottom) as an initial old state. The process invokes this function \emph{ i times }, but before invokes each iteration the algorithm compares if the previous \emph{ VarStates } is equal to the new one and if it is the case means that it is already stabilized and this approximation is returned as the final result. Otherwise when it achieves i iterations it applies widening over the two last  \emph{ VarStates } calculated. This result is the entry to begin a cycle of other \emph{ i times } iterations, which means that narrowing is being applied. To guarantee the end of the program, the process mentions above is executed \emph{ j times } and after that a final approximation is returned.
 
 
 \end{description}
 
 \section{Dead code elimination Module}
 
-The Optimizer module eliminates dead code (Code marked by the Interval Analysis as unreachable), and presents a simplified version of the Tip code. For example:
+The Optimizer(TOptimizer) module eliminates dead code (Code marked by the Interval Analysis as unreachable). For example:
 
 Given a program like this:
 
@@ -376,7 +367,7 @@ Given a program like this:
  i=12;
 \end{verbatim}
  
-Our production algorithm generates this linearization:
+The algorithm generates this linearization:
 
 \begin{verbatim}
 0:<entry>
@@ -392,7 +383,7 @@ Our production algorithm generates this linearization:
 10:<exit>
 \end{verbatim}
 
- The widening and interval analysis generates this:
+ The widening and interval analysis generates this output:
  
 \begin{verbatim}
  0                    | 0:
@@ -405,11 +396,11 @@ Our production algorithm generates this linearization:
     goto 7            |    goto 7
  4                    | 4: i=_|_ j=[-oo,oo] k=[-oo,oo]
     j = 12            |    j = 12
- 5                    | 5: i=_|_ j=_|_ k=_|_
+ 5                    | 5: i=NR j=NR k=NR
     k = 13            |    k = 13
- 6                    | 6: i=_|_ j=_|_ k=_|_
+ 6                    | 6: i=NR j=NR k=NR
     goto 9            |    goto 9
- 7                    | 7: i=_|_ j=_|_ k=_|_
+ 7                    | 7: i=NR j=NR k=NR
     j = 0             |    j = 0
  8                    | 8: i=_|_ j=[0,0] k=[-oo,oo]
     k = 0             |    k = 0
@@ -420,7 +411,7 @@ Our production algorithm generates this linearization:
 
 \end{verbatim}
 
-\dots And, the resulting code should be improvised like this: 
+\dots And, the resulting code should be improved like this: 
 
 \begin{verbatim}
  0:<entry>               |0:<entry>               
@@ -437,27 +428,30 @@ Our production algorithm generates this linearization:
 
 \end{verbatim}
 
-Our algorithm has these well defined tasks:
+The algorithm has these well defined tasks:
 
 \begin{itemize}
-  \item Remove the dead code marked as 'NR'  from the interval analyzer. 
-  \item from the previous step, we obviously will break some \emph{Goto} statements, so the next step is to filter also this brocken statements.
-  \item filter some consecutive goto nodes ie. nodes that are pointing to the next lines in the code without any obvious advantage.
-  \item finally, re arrange the nodes, re enumerating the still alive ``if'' and ``goto'' sentences and produce a meaninful output.
+  \item Remove the dead code marked as 'NR'  from the interval analyser. 
+  \item From the previous step were removed some ``goto'' nodes, so the next step is also to filter the statements that invoked those ``goto'' nodes.
+  \item Filter some consecutive ``goto'' nodes. It means, nodes that are pointing to the next lines in the code without any advantage.
+  \item Finally, re arrange the nodes, re enumerating the still alive ``if'' and ``goto'' sentences to produce a meaningful output.
 \end{itemize}
 
 
 \section{Fixes to the previous version}
-Some fixes done to our previous project:
+Some improvements done to the previous project:
 
 \begin{itemize}
-  \item  Fixed the interval division, improved by splitting intervals and operating over this subsets. The main idea is to avoid to deal with divisions by 0.
-
-  \item  Created a new structure for wrapping Interval and allows us to mark non reachable branchs of code.
-  \item  In order to better handling some interval operations, we have added a new data type (SInt). And a set of conversion functions.
+  \item  Fixed the interval division, It was improved by splitting the intervals in positive and negative values and operating over this subsets. The main purpose is to avoid to deal with divisions by 0.
+  \item  Created a new structure for wrapping Interval to mark non reachable branches of code and to differentiate no Initialized from no Reachable.
+  \item  In order to improve the handling of some interval operations, the data type ( data SInt = SMinInf | SInt Int | SPlusInf ) and a set of conversion functions were added.
+  \item  The Join (union) and Meet (intersect) operations were fixed.
+  \item  The conditions for the case false of the conditional (==) were added.
+  \item  The neighbours (adding and subtracting one) of the landmarks were added to obtain more precise results.
+  \item  The Entry point was modified to initialized the variables in bottom instead of top.
 \end{itemize}
 
-Most of the Interval code takes advantage of the \emph{Haskell} deriving feature to make our types behave in the intended way. At most, the \emph{instances} are derived from the following \emph{Class} types:
+Most of the Interval code takes advantage of the \emph{Haskell} deriving feature to make types behave in the intended way. The majority of the \emph{instances} are derived from the following \emph{Class} types:
 
 \begin{description}
   \item[Show:] for presentation
@@ -467,16 +461,15 @@ Most of the Interval code takes advantage of the \emph{Haskell} deriving feature
 
 \end{description}
   
-Also, the Join (union) and Meet (intersect) operations where fixed.
 
 
-\section{Conclusion}
 
-During the design phase is always important to think about what is the best data structure that could suit the given problem, in our case, a not so optimal decision was to use an Interval data type with non related parts (the lower bound Lb and the Upper bound Ub). This decision complicated greatly the interval operations since all cases had to be analyzed independently and most of the cases we where stuck between Lb against Ub operations. To this complexity we also faced the added complication of dealing with $-\infty$  and $\infty$ as operands, that in this scheme complicated even more the overall interval operations.
+\section{Lessons Learned}
 
-Finally, the solution iterates correctly using the Kleene algorithm and helped us to understand the main purpouse of this taks.
+After finishing this project the main lesson learned is that during the design phase is always important to think about what is the best data structure that could suit in a  given problem, in our case, a not optimal decision was to use an Interval data where the values do not belong to the same data type (was used lower bound Lb and the Upper bound Ub in separated way). This decision complicated the interval operations since all cases had to be analysed independently and in many cases we have difficulties to combine operations with Lb and Ub  and $-\infty$  and $\infty$. It is also important to try to design an extensible and maintainable code to facilitate future improvements.
+Finally, This project allows to understand more clearly the concepts of abstract interpretation specially interval analysis. Also it gives us an opportunity to know more about Haskell and, having the opportunity of fix some mistakes after a feedback allowed us to learn even more.
 
-% commented because it was marked by the professor as wrong
+% commented because it is wrooong
 % To conclude this interval analysis implementation report for a TIP program, the block graph (\ref{fig:hskia}) illustrates the different steps of data structure feed and transformation in order to obtain the possible approximations of interval values for the TIP variables.
 % 
 % 
@@ -488,7 +481,7 @@ Finally, the solution iterates correctly using the Kleene algorithm and helped u
 
 
 \section{User Guide}
-To use the program a compilation thru \emph{ghc} is required, the procedure is as follow:
+To use the program a compilation \emph{ghc} is required and the procedure is as follow:
 \begin{verbatim}
 $ ghc --make Main.hs -o hskia
 \end{verbatim}
@@ -500,7 +493,7 @@ Usage: hskia [-i -p -a -o] filename
 
       -a: get the production list from file
 
-      -p: get the predecesors list from file
+      -p: get the predecessors list from file
 
       -i: start the interval analysis
       
@@ -510,9 +503,9 @@ Usage: hskia [-i -p -a -o] filename
 \ldots where:
 \begin{description}
   \item[-a] Prints the productions for the tip program in filename, this does not include the interval analysis.
-  \item[-p] Prints the predecesors list for debugging the program analysis later, this option also does not include the interval analysis. 
+  \item[-p] Prints the predecessors list for debugging the program analysis later, this option also does not include the interval analysis. 
   \item[-i] Starts the interval analysis, including widening and generates the analysis report.
-  \item[-o] Creates an optimized version of the tip program <filename>, it includes the interval analysis 
+  \item[-o] Creates an optimized version of the tip program <filename>, it includes the interval analysis. 
 \end{description}
 
 \bibliographystyle{apacite}
